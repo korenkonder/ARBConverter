@@ -12,19 +12,20 @@ namespace ARBConverter
 {
     public class ARBConverter
     {
-        public const int MAX_CLIP_PLANES = 6;
-        public const int MAX_DRAW_BUFFERS = 8;
+        public const int MAX_CLIP_PLANES = 8;
+        public const int MAX_DRAW_BUFFERS_ARB = 8;
         public const int MAX_LIGHTS = 8;
         public const int MAX_PALETTE_MATRICES_ARB = 32;
-        public const int MAX_PROGRAM_MATRICES_ARB = 8;
         public const int MAX_PROGRAM_ENV_PARAMETERS_ARB = 256;
         public const int MAX_PROGRAM_LOCAL_PARAMETERS_ARB = 1024;
+        public const int MAX_PROGRAM_PARAMETER_BUFFER_BINDINGS_NV = 14;
         public const int MAX_PROGRAM_PARAMETER_BUFFER_SIZE_NV = 16384;
-        public const int MAX_TEXTURE_COORDS = 8;
-        public const int MAX_TEXTURE_IMAGE_UNITS = 32;
-        public const int MAX_TEXTURE_UNITS = 4;
+        public const int MAX_PROGRAM_MATRICES_ARB = 8;
+        public const int MAX_TEXTURE_COORDS_ARB = 8;
+        public const int MAX_TEXTURE_IMAGE_UNITS_ARB = 32;
+        public const int MAX_TEXTURE_UNITS_ARB = 4;
         public const int MAX_UNIFORM_BLOCK_SIZE = 65536;
-        public const int MAX_VERTEX_ATTRIBS = 16;
+        public const int MAX_VERTEX_ATTRIBS_ARB = 16;
         public const int MAX_VERTEX_UNITS_ARB = 4;
 
         public static System.Text.Encoding Encoding = System.Text.Encoding.ASCII;
@@ -155,20 +156,20 @@ namespace ARBConverter
             write($"layout (location = {3}) in {"vec4"} {"aColor0"};");
             write($"layout (location = {4}) in {"vec4"} {"aColor1"};");
             write($"layout (location = {5}) in {"float"} {"aFogCoord"};");
-            for (int i = 0; i < MAX_TEXTURE_COORDS; i++)
+            for (int i = 0; i < MAX_TEXTURE_COORDS_ARB; i++)
                 write($"layout (location = {8 + i}) in {"vec4"} {$"aTexCoord{i}"};");
             //for (int i = 0; i < MAX_VERTEX_UNITS_ARB; i++)
             //    write($"layout (location = {location++}) in {"vec4"} {$"aWeight{i}"};");
-            for (int i = 0; i < MAX_VERTEX_ATTRIBS; i++)
+            for (int i = 0; i < MAX_VERTEX_ATTRIBS_ARB; i++)
                 write($"layout (location = {i}) in {"vec4"} {$"aAttrib{i}"};");
             write("");
 
-            write($"out vec4 {$"fAttrib[{MAX_VERTEX_ATTRIBS}]"};");
+            write($"out vec4 {$"fAttrib[{MAX_VERTEX_ATTRIBS_ARB}]"};");
             write($"out vec4 {"fColor[2]"};");
             write($"out vec4 {"fColorFront[2]"};");
             write($"out vec4 {"fColorBack[2]"};");
             write($"out vec4 {"fFogCoord"};");
-            write($"out vec4 {$"fTexCoord[{MAX_TEXTURE_COORDS}]"};");
+            write($"out vec4 {$"fTexCoord[{MAX_TEXTURE_COORDS_ARB}]"};");
             write("");
 
             write($"#define {"MAX_PROGRAM_LOCAL_PARAMETERS_ARB"} {MAX_PROGRAM_LOCAL_PARAMETERS_ARB}");
@@ -187,16 +188,16 @@ namespace ARBConverter
         private void WriteSharedFragGLSL()
         {
             int location = 0;
-            for (int i = 0; i < MAX_DRAW_BUFFERS; i++)
+            for (int i = 0; i < MAX_DRAW_BUFFERS_ARB; i++)
                 write($"layout (location = {location++}) out vec4 oColor{i};");
             write("");
 
-            write($"in vec4 {$"fAttrib[{MAX_VERTEX_ATTRIBS}]"};");
+            write($"in vec4 {$"fAttrib[{MAX_VERTEX_ATTRIBS_ARB}]"};");
             write($"in vec4 {"fColor[2]"};");
             write($"in vec4 {"fColorFront[2]"};");
             write($"in vec4 {"fColorBack[2]"};");
             write($"in vec4 {"fFogCoord"};");
-            write($"in vec4 {$"fTexCoord[{MAX_TEXTURE_COORDS}]"};");
+            write($"in vec4 {$"fTexCoord[{MAX_TEXTURE_COORDS_ARB}]"};");
             write("");
 
             write($"#define {"MAX_PROGRAM_LOCAL_PARAMETERS_ARB"} {MAX_PROGRAM_LOCAL_PARAMETERS_ARB}");
@@ -220,10 +221,11 @@ namespace ARBConverter
             write($"#define {"MAX_PROGRAM_ENV_PARAMETERS_ARB"} {MAX_PROGRAM_ENV_PARAMETERS_ARB}");
             write($"#define {"MAX_PROGRAM_PARAMETER_BUFFER_SIZE_NV"} {MAX_PROGRAM_PARAMETER_BUFFER_SIZE_NV}");
             write($"#define {"MAX_PROGRAM_MATRICES_ARB"} {MAX_PROGRAM_MATRICES_ARB}");
-            write($"#define {"MAX_TEXTURE_COORDS"} {MAX_TEXTURE_COORDS}");
-            write($"#define {"MAX_TEXTURE_IMAGE_UNITS"} {MAX_TEXTURE_IMAGE_UNITS}");
-            write($"#define {"MAX_TEXTURE_UNITS"} {MAX_TEXTURE_UNITS}");
+            write($"#define {"MAX_TEXTURE_COORDS_ARB"} {MAX_TEXTURE_COORDS_ARB}");
+            write($"#define {"MAX_TEXTURE_IMAGE_UNITS_ARB"} {MAX_TEXTURE_IMAGE_UNITS_ARB}");
+            write($"#define {"MAX_TEXTURE_UNITS_ARB"} {MAX_TEXTURE_UNITS_ARB}");
             write($"#define {"MAX_UNIFORM_BLOCK_SIZE"} {MAX_UNIFORM_BLOCK_SIZE}");
+            write($"#define {"MAX_VERTEX_UNITS_ARB"} {MAX_VERTEX_UNITS_ARB}");
             write("");
 
             write("struct ClipStruct");
@@ -290,12 +292,12 @@ namespace ARBConverter
 
             write("struct MatrixStruct");
             write("{");
-            write($"{Tab}mat4 ModelView[MAX_PROGRAM_MATRICES_ARB];");
+            write($"{Tab}mat4 ModelView[MAX_VERTEX_UNITS_ARB];");
             write($"{Tab}mat4 Projection;");
             write($"{Tab}mat4 MVP;");
-            write($"{Tab}mat4 Texture[MAX_TEXTURE_COORDS];");
+            write($"{Tab}mat4 Texture[MAX_TEXTURE_COORDS_ARB];");
             write($"{Tab}mat4 Palette[MAX_PALETTE_MATRICES_ARB];");
-            write($"{Tab}mat4 Program[MAX_TEXTURE_COORDS];");
+            write($"{Tab}mat4 Program[MAX_PROGRAM_MATRICES_ARB];");
             write("};");
             write("");
 
@@ -337,8 +339,8 @@ namespace ARBConverter
             write($"{Tab}LightProdStruct LightProd[MAX_LIGHTS];");
             write($"{Tab}LightProdStruct LightProdFront[MAX_LIGHTS];");
             write($"{Tab}LightProdStruct LightProdBack[MAX_LIGHTS];");
-            write($"{Tab}TexGenStruct TexGen[MAX_TEXTURE_UNITS];");
-            write($"{Tab}TexEnvStruct TexEnv[MAX_TEXTURE_UNITS];");
+            write($"{Tab}TexGenStruct TexGen[MAX_TEXTURE_UNITS_ARB];");
+            write($"{Tab}TexEnvStruct TexEnv[MAX_TEXTURE_UNITS_ARB];");
             write($"{Tab}FogStruct Fog;");
             write($"{Tab}ClipStruct Clip[MAX_CLIP_PLANES];");
             write($"{Tab}PointStruct Point;");
@@ -363,7 +365,7 @@ namespace ARBConverter
             write("};");
             write("");
 
-            for (int i = 0; i < 12; i++)
+            for (int i = 0; i < MAX_PROGRAM_PARAMETER_BUFFER_BINDINGS_NV - 2; i++)
             {
                 write($"layout (binding = {2 + i}, std140) uniform Buffer{i}Uniform");
                 write("{");
@@ -372,14 +374,14 @@ namespace ARBConverter
                 write("");
             }
 
-            write("uniform sampler1D Texture1D[MAX_TEXTURE_IMAGE_UNITS];");
-            write("uniform sampler2D Texture2D[MAX_TEXTURE_IMAGE_UNITS];");
-            write("uniform sampler3D Texture3D[MAX_TEXTURE_IMAGE_UNITS];");
-            write("uniform samplerCube TextureCUBE[MAX_TEXTURE_IMAGE_UNITS];");
-            write("uniform sampler2DRect TextureRECT[MAX_TEXTURE_IMAGE_UNITS];");
-            write("uniform sampler1DShadow TextureSHADOW1D[MAX_TEXTURE_IMAGE_UNITS];");
-            write("uniform sampler2DShadow TextureSHADOW2D[MAX_TEXTURE_IMAGE_UNITS];");
-            write("uniform sampler2DRectShadow TextureSHADOWRECT[MAX_TEXTURE_IMAGE_UNITS];");
+            write("uniform sampler1D Texture1D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
+            write("uniform sampler2D Texture2D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
+            write("uniform sampler3D Texture3D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
+            write("uniform samplerCube TextureCUBE[MAX_TEXTURE_IMAGE_UNITS_ARB];");
+            write("uniform sampler2DRect TextureRECT[MAX_TEXTURE_IMAGE_UNITS_ARB];");
+            write("uniform sampler1DShadow TextureSHADOW1D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
+            write("uniform sampler2DShadow TextureSHADOW2D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
+            write("uniform sampler2DRectShadow TextureSHADOWRECT[MAX_TEXTURE_IMAGE_UNITS_ARB];");
             write("");
 
             write("#define GetCC(a) ((a) > 0 ? 1 : (a) < 0 ? -1 : 0)");

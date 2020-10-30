@@ -20,9 +20,13 @@ namespace ARBConverter
                 return;
             }
 
+            bool include = args.Length > 1;
+            if (include) include = args[1] != "-i";
+            else include = true;
+
             ARBConverter arb = new ARBConverter();
             arb = new ARBConverter();
-            arb.Convert(args[0], args.Length > 1 && args[1] != "-i");
+            arb.Convert(args[0], include);
         }
     }
 }
