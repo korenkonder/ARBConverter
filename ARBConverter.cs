@@ -175,7 +175,8 @@ namespace ARBConverter
             write($"#define {"MAX_PROGRAM_LOCAL_PARAMETERS_ARB"} {MAX_PROGRAM_LOCAL_PARAMETERS_ARB}");
             write("");
 
-            write("uniform vec4 PrgVertLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
+            write($"layout(location = {MAX_TEXTURE_IMAGE_UNITS_ARB}) uniform vec4" +
+                " PrgVertLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
 
             void write(string str)
             {
@@ -203,7 +204,8 @@ namespace ARBConverter
             write($"#define {"MAX_PROGRAM_LOCAL_PARAMETERS_ARB"} {MAX_PROGRAM_LOCAL_PARAMETERS_ARB}");
             write("");
 
-            write("uniform vec4 PrgFragLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
+            write($"layout(location = {MAX_TEXTURE_IMAGE_UNITS_ARB}) uniform vec4" +
+                " PrgFragLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
 
             void write(string str)
             {
@@ -256,12 +258,6 @@ namespace ARBConverter
             write($"{Tab}vec4 Attenuation;");
             write($"{Tab}vec4 SpotDirection;");
             write($"{Tab}vec4 Half;");
-            write("};");
-            write("");
-
-            write("struct LightModelReducedStruct");
-            write("{");
-            write($"{Tab}vec4 SceneColor;");
             write("};");
             write("");
 
@@ -329,16 +325,10 @@ namespace ARBConverter
 
             write("struct StateStruct");
             write("{");
-            write($"{Tab}MaterialStruct Material;");
-            write($"{Tab}MaterialStruct MaterialFront;");
-            write($"{Tab}MaterialStruct MaterialBack;");
+            write($"{Tab}MaterialStruct Material[2];");
             write($"{Tab}LightStruct Light[MAX_LIGHTS];");
-            write($"{Tab}LightModelStruct LightModel;");
-            write($"{Tab}LightModelReducedStruct LightModelFront;");
-            write($"{Tab}LightModelReducedStruct LightModelBack;");
-            write($"{Tab}LightProdStruct LightProd[MAX_LIGHTS];");
-            write($"{Tab}LightProdStruct LightProdFront[MAX_LIGHTS];");
-            write($"{Tab}LightProdStruct LightProdBack[MAX_LIGHTS];");
+            write($"{Tab}LightModelStruct LightModel[2];");
+            write($"{Tab}LightProdStruct LightProd[2][MAX_LIGHTS];");
             write($"{Tab}TexGenStruct TexGen[MAX_TEXTURE_UNITS_ARB];");
             write($"{Tab}TexEnvStruct TexEnv[MAX_TEXTURE_UNITS_ARB];");
             write($"{Tab}FogStruct Fog;");
@@ -373,16 +363,6 @@ namespace ARBConverter
                 write("};");
                 write("");
             }
-
-            write("uniform sampler1D Texture1D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("uniform sampler2D Texture2D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("uniform sampler3D Texture3D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("uniform samplerCube TextureCUBE[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("uniform sampler2DRect TextureRECT[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("uniform sampler1DShadow TextureSHADOW1D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("uniform sampler2DShadow TextureSHADOW2D[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("uniform sampler2DRectShadow TextureSHADOWRECT[MAX_TEXTURE_IMAGE_UNITS_ARB];");
-            write("");
 
             write("#define GetCC(a) ((a) > 0 ? 1 : (a) < 0 ? -1 : 0)");
             write("#define BCCEQ(a) ((a) == 0)");
@@ -842,8 +822,7 @@ namespace ARBConverter
                 }
                 else { d = str; g = null; }
 
-                Modifier m = Modifier.FLOAT;
-                InstFlags flags = InstFlags.N;
+                Modifier m = Modifier.FLOAT; InstFlags flags = InstFlags.N;
                      if (d.EndsWith(".CC" )) { flags |= InstFlags.CC ; d = d.Substring(0, d.Length - 3); hasCC |= true; }
                 else if (d.EndsWith(".CC0")) { flags |= InstFlags.CC0; d = d.Substring(0, d.Length - 4); hasCC |= true; }
                 else if (d.EndsWith(".CC1")) { flags |= InstFlags.CC1; d = d.Substring(0, d.Length - 4); hasCC |= true; }
@@ -976,7 +955,6 @@ namespace ARBConverter
 
             Dictionary<INameAttrib, string>     @in      = new Dictionary<INameAttrib, string>();
             Dictionary<INameOutput, string>    @out      = new Dictionary<INameOutput, string>();
-            Dictionary<INameParam , string> uniform      = new Dictionary<INameParam , string>();
             Dictionary<INameParam , string>  @const      = new Dictionary<INameParam , string>();
             Dictionary<INameParam , string>   constArray = new Dictionary<INameParam , string>();
 
@@ -1013,7 +991,7 @@ namespace ARBConverter
                 {
                     IType t = param[paramArr[i]];
                     if (t is Type || t is TypeIndex || t is TypeIndexIndex || t is TypeIndexName || t is TypeRange) { }
-                    else if (t is TypeName) addUniform(TypeToString(t, Modifier.FLOAT));
+                    else if (t is TypeName) throw new Exception($"AAAAAAA");
                     else if (t is TypeArray ta)
                     {
                         string type = getType(paramArr[i]);
@@ -1063,9 +1041,6 @@ namespace ARBConverter
                         else throw new Exception("0x0011 Invalid IType");
                     }
 
-                    void addUniform(string str)
-                    { if (!uniform.ContainsKey(paramArr[i])) uniform.Add(paramArr[i], str); }
-
                     void addConst(string str)
                     { if (!@const.ContainsKey(paramArr[i])) @const.Add(paramArr[i], str); }
                 }
@@ -1097,24 +1072,6 @@ namespace ARBConverter
                     addStrDict(outArr[i].Var, str, outArr[i].Mod);
                 }
                 outArr = null;
-            }
-
-            {
-                i0 = uniform.Count;
-                INameParam[] uniformArr = GetDictKeys(uniform);
-                List<string> uniformList = new List<string>();
-                for (i = 0; i < i0; i++)
-                {
-                    string str = uniform[uniformArr[i]];
-                    if (uniformList.Contains(str)) continue;
-
-                    addStrDict(uniformArr[i].Var, str, uniformArr[i].Mod);
-                    uniformList.Add(str);
-                    write($"uniform {getType(uniformArr[i])} {str};");
-                }
-                if (i0 > 0) write("");
-                uniformList = null;
-                uniformArr = null;
             }
 
             {
@@ -1190,6 +1147,119 @@ namespace ARBConverter
                 string[] renameValArr = GetDictValues(rename);
                 for (i = 0; i < i0; i++)
                     addStrDict(renameKeyArr[i], renameValArr[i], Modifier.FLOAT);
+            }
+
+            /*
+            write("uniform sampler1D Texture1D;");
+            write("uniform sampler2D Texture2D;");
+            write("uniform sampler3D Texture3D;");
+            write("uniform samplerCube TextureCUBE;");
+            write("uniform sampler2DRect TextureRECT;");
+            write("uniform sampler1DShadow TextureSHADOW1D;");
+            write("uniform sampler2DShadow TextureSHADOW2D;");
+            write("uniform sampler2DRectShadow TextureSHADOWRECT;");
+            write("");*/
+
+            SortedDictionary<int, string> texDict = new SortedDictionary<int, string>();
+            i0 = inst.Count;
+            for (i = 0; i < i0; i++)
+            {
+                string name;
+                int index;
+                switch (inst[i])
+                {
+                    case TEX tex:
+                        name = tex.Mode switch
+                        {
+                            TexMode._1D => "1D",
+                            TexMode._2D => "2D",
+                            TexMode._3D => "3D",
+                            TexMode._CUBE => "CUBE",
+                            TexMode._RECT => "RECT",
+                            TexMode._SHADOW1D => "SHADOW1D",
+                            TexMode._SHADOW2D => "SHADOW2D",
+                            TexMode._SHADOWRECT => "SHADOWRECT",
+                            _ => throw new Exception("0x009F Invalid texture mode"),
+                        };
+                        index = tex.Index;
+                        break;
+                    case TXB txb:
+                        name = txb.Mode switch
+                        {
+                            TexMode._1D => "1D",
+                            TexMode._2D => "2D",
+                            TexMode._3D => "3D",
+                            TexMode._CUBE => "CUBE",
+                            TexMode._RECT => "RECT",
+                            TexMode._SHADOW1D => "SHADOW1D",
+                            TexMode._SHADOW2D => "SHADOW2D",
+                            TexMode._SHADOWRECT => "SHADOWRECT",
+                            _ => throw new Exception("0x00A0 Invalid texture mode"),
+                        };
+                        index = txb.Index;
+                        break;
+                    case TXL txl:
+                        name = txl.Mode switch
+                        {
+                            TexMode._1D => "1D",
+                            TexMode._2D => "2D",
+                            TexMode._3D => "3D",
+                            TexMode._CUBE => "CUBE",
+                            TexMode._SHADOW1D => "SHADOW1D",
+                            TexMode._SHADOW2D => "SHADOW2D",
+                            _ => throw new Exception("0x00A1 Invalid texture mode"),
+                        };
+                        index = txl.Index;
+                        break;
+                    case TXP txp:
+                        name = txp.Mode switch
+                        {
+                            TexMode._1D => "1D",
+                            TexMode._2D => "2D",
+                            TexMode._3D => "3D",
+                            TexMode._CUBE => "CUBE",
+                            TexMode._RECT => "RECT",
+                            TexMode._SHADOW1D => "SHADOW1D",
+                            TexMode._SHADOW2D => "SHADOW2D",
+                            TexMode._SHADOWRECT => "SHADOWRECT",
+                            _ => throw new Exception("0x00A2 Invalid texture mode"),
+                        };
+                        index = txp.Index;
+                        break;
+                    default: continue;
+                }
+
+                if (texDict.ContainsKey(index))
+                {
+                    if (texDict[index] == $"Texture{name}{index}") continue;
+                    else throw new Exception("0x00A3 Invalid");
+                }
+
+                texDict.Add(index, $"Texture{name}{index}");
+            }
+            
+            i0 = texDict.Count;
+            if (i0 > 0)
+            {
+                for (i = 0; i < MAX_TEXTURE_IMAGE_UNITS_ARB; i++)
+                {
+                    if (!texDict.ContainsKey(i))
+                        continue;
+
+                    string name = texDict[i];
+                    string type;
+                         if (name.StartsWith("Texture1D")) type = "sampler1D";
+                    else if (name.StartsWith("Texture2D")) type = "sampler2D";
+                    else if (name.StartsWith("Texture3D")) type = "sampler3D";
+                    else if (name.StartsWith("TextureCUBE")) type = "samplerCube";
+                    else if (name.StartsWith("TextureRECT")) type = "sampler2DRect";
+                    else if (name.StartsWith("TextureSHADOW1D")) type = "sampler1DShadow";
+                    else if (name.StartsWith("TextureSHADOW2D")) type = "sampler2DShadow";
+                    else if (name.StartsWith("TextureSHADOWRECT")) type = "sampler2DRectShadow";
+                    else throw new Exception("0x00A4 Invalid");
+                    write($"layout(location = {i}) uniform {type} {name};");
+                }
+                write("");
             }
 
             if (hasCC)
@@ -1848,7 +1918,7 @@ namespace ARBConverter
 
                         if (tex.Offset != null)
                         {
-                            WriteString(s, $"textureOffset(Texture{name}[{tex.Index}], ");
+                            WriteString(s, $"textureOffset(Texture{name}{tex.Index}, ");
                             writeSrcDms(s, st, sn, ssw, texMask);
                             WriteString(s, ", ");
                             WriteString(s,
@@ -1868,7 +1938,7 @@ namespace ARBConverter
                         }
                         else
                         {
-                            WriteString(s, $"texture(Texture{name}[{tex.Index}], ");
+                            WriteString(s, $"texture(Texture{name}{tex.Index}, ");
                             writeSrcDms(s, st, sn, ssw, texMask);
                             WriteString(s, ")");
                         }
@@ -1932,7 +2002,7 @@ namespace ARBConverter
 
                         if (txb.Offset != null)
                         {
-                            WriteString(s, $"textureOffset(Texture{name}[{txb.Index}], ");
+                            WriteString(s, $"textureOffset(Texture{name}{txb.Index}, ");
                             writeSrcDms(s, st, sn, ssw, texMask);
                             WriteString(s, ", ");
                             writeSrcDmsEl(s, st, sn, ssw, "xyzw", 3);
@@ -1954,7 +2024,7 @@ namespace ARBConverter
                         }
                         else
                         {
-                            WriteString(s, $"texture(Texture{name}[{txb.Index}], ");
+                            WriteString(s, $"texture(Texture{name}{txb.Index}, ");
                             writeSrcDms(s, st, sn, ssw, texMask);
                             WriteString(s, ", ");
                             writeSrcDmsEl(s, st, sn, ssw, "xyzw", 3);
@@ -2016,7 +2086,7 @@ namespace ARBConverter
 
                         if (txl.Offset != null)
                         {
-                            WriteString(s, $"textureLodOffset(Texture{name}[{txl.Index}], ");
+                            WriteString(s, $"textureLodOffset(Texture{name}{txl.Index}, ");
                             writeSrcDms(s, st, sn, ssw, texMask);
                             WriteString(s, ", ");
                             writeSrcDmsEl(s, st, sn, ssw, "xyzw", 3);
@@ -2036,7 +2106,7 @@ namespace ARBConverter
                         }
                         else
                         {
-                            WriteString(s, $"textureLod(Texture{name}[{txl.Index}], ");
+                            WriteString(s, $"textureLod(Texture{name}{txl.Index}, ");
                             writeSrcDms(s, st, sn, ssw, texMask);
                             WriteString(s, ", ");
                             writeSrcDmsEl(s, st, sn, ssw, "xyzw", 3);
@@ -2083,7 +2153,7 @@ namespace ARBConverter
 
                         if (txp.Offset != null)
                         {
-                            WriteString(s, $"textureProjOffset(Texture{name}[{txp.Index}], ");
+                            WriteString(s, $"textureProjOffset(Texture{name}{txp.Index}, ");
                             writeSrcDms(s, st, sn, ssw, "");
                             WriteString(s, ", ");
                             WriteString(s,
@@ -2103,7 +2173,7 @@ namespace ARBConverter
                         }
                         else
                         {
-                            WriteString(s, $"textureProj(Texture{name}[{txp.Index}], ");
+                            WriteString(s, $"textureProj(Texture{name}{txp.Index}, ");
                             writeSrcDms(s, st, sn, ssw, "");
                             WriteString(s, ")");
                         }
@@ -3633,26 +3703,26 @@ namespace ARBConverter
 
                 Var.FragmentOutputColor     => "oColor0",
                 Var.FragmentOutputDepth     => "gl_FragDepth",
-
-                Var.StateMaterialAmbient           => "State.Material.Ambient",
-                Var.StateMaterialDiffuse           => "State.Material.Diffuse",
-                Var.StateMaterialSpecular          => "State.Material.Specular",
-                Var.StateMaterialEmission          => "State.Material.Emission",
-                Var.StateMaterialShininess         => "State.Material.Shininess",
-                Var.StateMaterialFrontAmbient      => "State.MaterialFront.Ambient",
-                Var.StateMaterialFrontDiffuse      => "State.MaterialFront.Diffuse",
-                Var.StateMaterialFrontSpecular     => "State.MaterialFront.Specular",
-                Var.StateMaterialFrontEmission     => "State.MaterialFront.Emission",
-                Var.StateMaterialFrontShininess    => "State.MaterialFront.Shininess",
-                Var.StateMaterialBackAmbient       => "State.MaterialBack.Ambient",
-                Var.StateMaterialBackDiffuse       => "State.MaterialBack.Diffuse",
-                Var.StateMaterialBackSpecular      => "State.MaterialBack.Specular",
-                Var.StateMaterialBackEmission      => "State.MaterialBack.Emission",
-                Var.StateMaterialBackShininess     => "State.MaterialBack.Shininess",
-                Var.StateLightModelAmbient         => "State.LightModel.Ambient",
-                Var.StateLightModelSceneColor      => "State.LightModel.SceneColor",
-                Var.StateLightModelFrontSceneColor => "State.LightModelFront.SceneColor",
-                Var.StateLightModelBackSceneColor  => "State.LightModelBack.SceneColor",
+                
+                Var.StateMaterialAmbient           => "State.Material[0].Ambient",
+                Var.StateMaterialDiffuse           => "State.Material[0].Diffuse",
+                Var.StateMaterialSpecular          => "State.Material[0].Specular",
+                Var.StateMaterialEmission          => "State.Material[0].Emission",
+                Var.StateMaterialShininess         => "State.Material[0].Shininess",
+                Var.StateMaterialFrontAmbient      => "State.Material[0].Ambient",
+                Var.StateMaterialFrontDiffuse      => "State.Material[0].Diffuse",
+                Var.StateMaterialFrontSpecular     => "State.Material[0].Specular",
+                Var.StateMaterialFrontEmission     => "State.Material[0].Emission",
+                Var.StateMaterialFrontShininess    => "State.Material[0].Shininess",
+                Var.StateMaterialBackAmbient       => "State.Material[1].Ambient",
+                Var.StateMaterialBackDiffuse       => "State.Material[1].Diffuse",
+                Var.StateMaterialBackSpecular      => "State.Material[1].Specular",
+                Var.StateMaterialBackEmission      => "State.Material[1].Emission",
+                Var.StateMaterialBackShininess     => "State.Material[1].Shininess",
+                Var.StateLightModelAmbient         => "State.LightModel[0].Ambient",
+                Var.StateLightModelSceneColor      => "State.LightModel[0].SceneColor",
+                Var.StateLightModelFrontSceneColor => "State.LightModel[0].SceneColor",
+                Var.StateLightModelBackSceneColor  => "State.LightModel[1].SceneColor",
                 Var.StateFogColor                  => "State.Fog.Color",
                 Var.StateFogParams                 => "State.Fog.Params",
                 Var.StatePointSize                 => "State.Point.Size",
@@ -3700,15 +3770,15 @@ namespace ARBConverter
                 Var.StateLightNShininess          => $"State.Light[{n}].Shininess",
                 Var.StateLightNSpotDirection      => $"State.Light[{n}].SpotDirection",
                 Var.StateLightNHalf               => $"State.Light[{n}].Half",
-                Var.StateLightProdNAmbient        => $"State.LightProd[{n}].Ambient",
-                Var.StateLightProdNDiffuse        => $"State.LightProd[{n}].Diffuse",
-                Var.StateLightProdNSpecular       => $"State.LightProd[{n}].Specular",
-                Var.StateLightProdNFrontAmbient   => $"State.LightProdFront[{n}].Ambient",
-                Var.StateLightProdNFrontDiffuse   => $"State.LightProdFront[{n}].Diffuse",
-                Var.StateLightProdNFrontSpecular  => $"State.LightProdFront[{n}].Specular",
-                Var.StateLightProdNBackAmbient    => $"State.LightProdBack[{n}].Ambient",
-                Var.StateLightProdNBackDiffuse    => $"State.LightProdBack[{n}].Diffuse",
-                Var.StateLightProdNBackSpecular   => $"State.LightProdBack[{n}].Specular",
+                Var.StateLightProdNAmbient        => $"State.LightProd[0][{n}].Ambient",
+                Var.StateLightProdNDiffuse        => $"State.LightProd[0][{n}].Diffuse",
+                Var.StateLightProdNSpecular       => $"State.LightProd[0][{n}].Specular",
+                Var.StateLightProdNFrontAmbient   => $"State.LightProd[0][{n}].Ambient",
+                Var.StateLightProdNFrontDiffuse   => $"State.LightProd[0][{n}].Diffuse",
+                Var.StateLightProdNFrontSpecular  => $"State.LightProd[0][{n}].Specular",
+                Var.StateLightProdNBackAmbient    => $"State.LightProd[1][{n}].Ambient",
+                Var.StateLightProdNBackDiffuse    => $"State.LightProd[1][{n}].Diffuse",
+                Var.StateLightProdNBackSpecular   => $"State.LightProd[1][{n}].Specular",
                 Var.StateTexGenNEyeS              => $"State.TexGen[{n}].EyeS",
                 Var.StateTexGenNEyeT              => $"State.TexGen[{n}].EyeT",
                 Var.StateTexGenNEyeR              => $"State.TexGen[{n}].EyeR",
@@ -4045,7 +4115,7 @@ namespace ARBConverter
             }
 
             public override string ToString() =>
-                $"{TypeToString(data, m)}{(mask != null ? $".{mask}" : "")}{cc}";
+                $"{TypeToString(data, m)}{(mask != "" ? $".{mask}" : "")}{cc}";
         }
         #endregion
 
@@ -4054,8 +4124,6 @@ namespace ARBConverter
         {
             string Name { get; }
             DstOperand DOp { get; }
-
-            InstFlags ConstFlags { get; }
             InstFlags Flags { get; }
         }
 
@@ -4080,7 +4148,8 @@ namespace ARBConverter
                 s += ".S";
             else if ((flags & InstFlags.U) != 0)
                 s += ".U";
-            if ((flags & InstFlags.C) == 0)
+            if ((flags & InstFlags.C) == 0 || ((flags & InstFlags.C) != 0
+                && (flags & (InstFlags.CC | InstFlags.CC0 | InstFlags.CC1)) != 0))
             {
                 if ((flags & InstFlags.CC) != 0)
                     s += ".CC";
@@ -4102,12 +4171,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public ABS(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4131,12 +4196,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public ADD(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4159,12 +4220,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.C;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public ARL(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4186,12 +4243,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.C;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public ARR(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4213,12 +4266,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public CEIL(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4244,12 +4293,8 @@ namespace ARBConverter
             public SrcOperand SOp3 => sop3;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public CMP(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4273,12 +4318,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & ConstFlags;
+            public InstFlags Flags => flags;
 
             public COS(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4300,12 +4341,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & ConstFlags;
+            public InstFlags Flags => flags;
 
             public DDX(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4327,12 +4364,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & ConstFlags;
+            public InstFlags Flags => flags;
 
             public DDY(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4356,12 +4389,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public DIV(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4386,12 +4415,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public DP2(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4418,12 +4443,8 @@ namespace ARBConverter
             public SrcOperand SOp3 => sop3;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public DP2A(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4449,12 +4470,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public DP3(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4479,12 +4496,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public DP4(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4509,12 +4522,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public DPH(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4539,12 +4548,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public DST(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4567,12 +4572,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public EX2(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4594,12 +4595,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.C;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public EXP(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4621,12 +4618,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public FLR(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4648,12 +4641,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public FRC(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4675,12 +4664,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public LG2(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4702,12 +4687,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public LIT(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4729,12 +4710,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.C;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public LOG(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4760,12 +4737,8 @@ namespace ARBConverter
             public SrcOperand SOp3 => sop3;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public LRP(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4793,12 +4766,8 @@ namespace ARBConverter
             public SrcOperand SOp3 => sop3;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public MAD(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4824,12 +4793,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public MAX(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4854,12 +4819,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public MIN(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4882,18 +4843,15 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public MOV(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
                 this.flags = flags;
                 sop = new SrcOperand(arb, mode, m, op[1]);
                 dop  = new DstOperand(arb, mode, m, op[0]);
+                InstToString(Name, Flags);
             }
 
             public override string ToString() =>
@@ -4911,12 +4869,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public MUL(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4939,12 +4893,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public NRM(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4968,12 +4918,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public POW(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -4996,12 +4942,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public RCC(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5023,12 +4965,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public RCP(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5052,12 +4990,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public RFL(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5080,12 +5014,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public RSQ(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5107,12 +5037,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SCS(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5136,12 +5062,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SEQ(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5166,12 +5088,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SFL(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5196,12 +5114,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SGE(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5226,12 +5140,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SGT(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5254,12 +5164,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SIN(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5283,12 +5189,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SLE(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5313,12 +5215,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SLT(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5343,12 +5241,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SNE(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5371,12 +5265,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SSG(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5400,12 +5290,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public STR(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5430,12 +5316,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public SUB(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5466,12 +5348,8 @@ namespace ARBConverter
             public string WSwizzle => wSwizzle;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.C;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             private bool negate;
             public bool Negate => negate;
@@ -5527,12 +5405,8 @@ namespace ARBConverter
             public DstOperand DOp    => dop;
             public     string Offset => offset;
 
-            private const InstFlags constFlags =
-                InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public TEX(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5562,12 +5436,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public TRUNC(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5595,12 +5465,8 @@ namespace ARBConverter
             public DstOperand DOp    => dop;
             public     string Offset => offset;
 
-            private const InstFlags constFlags =
-                InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public TXB(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5636,12 +5502,8 @@ namespace ARBConverter
             public DstOperand DOp    => dop;
             public     string Offset => offset;
 
-            private const InstFlags constFlags =
-                InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public TXL(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5677,12 +5539,8 @@ namespace ARBConverter
             public DstOperand DOp    => dop;
             public     string Offset => offset;
 
-            private const InstFlags constFlags =
-                InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public TXP(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5716,12 +5574,8 @@ namespace ARBConverter
             public SrcOperand SOp3 => sop3;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public X2D(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5747,12 +5601,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public XPD(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
             {
@@ -5774,7 +5624,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             private CC cc;
@@ -5808,7 +5657,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             private CC cc;
@@ -5842,7 +5690,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             public override string ToString() =>
@@ -5855,7 +5702,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             public override string ToString() =>
@@ -5868,7 +5714,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             public override string ToString() =>
@@ -5881,7 +5726,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             public override string ToString() =>
@@ -5894,7 +5738,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             private CC cc;
@@ -5921,7 +5764,6 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             private CC cc;
@@ -5951,7 +5793,6 @@ namespace ARBConverter
             public string Name => name;
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             public Label(string name)
@@ -5971,7 +5812,6 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             public LOOP(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
@@ -5991,7 +5831,6 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             public REP(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags)
@@ -6009,7 +5848,6 @@ namespace ARBConverter
             public SrcOperand SOp => new SrcOperand(Var.None);
             public DstOperand DOp => new DstOperand(Var.None);
 
-            public InstFlags ConstFlags => InstFlags.N;
             public InstFlags Flags => InstFlags.N;
 
             private CC cc;
@@ -6037,12 +5875,8 @@ namespace ARBConverter
             public string Name => name;
             public DstOperand DOp => new DstOperand(Var.None);
 
-            private const InstFlags constFlags =
-                InstFlags.N;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public Dummy0(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags, string name)
             {
@@ -6063,12 +5897,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => new DstOperand(Var.None);
 
-            private const InstFlags constFlags =
-                InstFlags.N;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public Dummy1(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags, string name)
             {
@@ -6091,12 +5921,8 @@ namespace ARBConverter
             public SrcOperand SOp => sop;
             public DstOperand DOp => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public Dummy2(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags, string name)
             {
@@ -6122,12 +5948,8 @@ namespace ARBConverter
             public SrcOperand SOp2 => sop2;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public Dummy3(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags, string name)
             {
@@ -6156,12 +5978,8 @@ namespace ARBConverter
             public SrcOperand SOp3 => sop3;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public Dummy4(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags, string name)
             {
@@ -6193,12 +6011,8 @@ namespace ARBConverter
             public SrcOperand SOp4 => sop4;
             public DstOperand DOp  => dop;
 
-            private const InstFlags constFlags =
-                InstFlags.R | InstFlags.H | InstFlags.X | InstFlags.C | InstFlags.S | InstFlags.s;
-            public InstFlags ConstFlags => constFlags;
-
             private InstFlags flags;
-            public InstFlags Flags => flags & constFlags;
+            public InstFlags Flags => flags;
 
             public Dummy5(ARBConverter arb, string[] op, Mode mode, Modifier m, InstFlags flags, string name)
             {
