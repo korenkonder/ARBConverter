@@ -1648,8 +1648,8 @@ namespace ARBConverter
                     i1++;
                     break;
                 case LRP lrp:
-                    getInstSrc1Op(lrp.SOp2, dms);
-                    getInstSrc2Op(lrp.SOp3, dms);
+                    getInstSrc1Op(lrp.SOp3, dms);
+                    getInstSrc2Op(lrp.SOp2, dms);
                     getInstSrc3Op(lrp.SOp1, dms);
 
                     writeInst3(dms, "mix(", ", ", ", ", ")");
