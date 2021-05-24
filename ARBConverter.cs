@@ -2339,7 +2339,7 @@ namespace ARBConverter
                         writeComp(ssw[1]);
                         writeComp(ssw[2]);
                         writeComp(ssw[3]);
-                        WriteString(s, $")\n{tab}{Tab}return");
+                        WriteString(s, $")\n{tab}{Tab}discard");
 
                         void writeComp(char c)
                         {
@@ -2371,7 +2371,7 @@ namespace ARBConverter
                         WriteString(s, tab);
                         WriteString(s, "if (");
                         writeCCComp(cc.Swizzle, "");
-                        WriteString(s, $")\n{tab}{Tab}return");
+                        WriteString(s, $")\n{tab}{Tab}discard");
                     }
                     break;
                 case Label lbl:
