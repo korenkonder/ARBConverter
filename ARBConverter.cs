@@ -2282,7 +2282,6 @@ namespace ARBConverter
                     for (i2 = 0; i2 < instLevel; i2++)
                         WriteString(s, Tab);
                     WriteString(s, "{\n");
-                    i++;
                     break;
                 case ENDIF endif:
                     addEnd = false;
