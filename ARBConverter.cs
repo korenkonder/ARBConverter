@@ -1740,7 +1740,7 @@ namespace ARBConverter
                     getInstSrcOp(rsq.SOp, dms);
 
                     writeInstInnerAction(dms, m, () => {
-                        WriteString(s, "1 / sqrt(");
+                        WriteString(s, "inversesqrt(");
                         writeSrcDms(s, st, sn, ssw, "x");
                         WriteString(s, ")");
                     });
