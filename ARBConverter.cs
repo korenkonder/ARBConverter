@@ -375,28 +375,26 @@ namespace ARBConverter
             write("#define BCCFL(a) (false)");
             write("");
 
-            write("#define CCTR(a, b, c) (true ? b : c)");
-            write("#define CCFL(a, b, c) (false ? b : c)");
-            write("#define CCEQ(a, b, c) ((a) == 0 ? b : c)");
-            write("#define CCGE(a, b, c) ((a) >= 0 ? b : c)");
-            write("#define CCGT(a, b, c) ((a) > 0 ? b : c)");
-            write("#define CCLE(a, b, c) ((a) <= 0 ? b : c)");
-            write("#define CCLT(a, b, c) ((a) < 0 ? b : c)");
-            write("#define CCNE(a, b, c) ((a) != 0 ? b : c)");
-            write("#define CCTR(a, b, c) (true ? b : c)");
-            write("#define CCFL(a, b, c) (false ? b : c)");
+            write("#define CCEQ(a, b, c) ((a) == 0 ? (b) : (c))");
+            write("#define CCGE(a, b, c) ((a) >= 0 ? (b) : (c))");
+            write("#define CCGT(a, b, c) ((a) > 0 ? (b) : (c))");
+            write("#define CCLE(a, b, c) ((a) <= 0 ? (b) : (c))");
+            write("#define CCLT(a, b, c) ((a) < 0 ? (b) : (c))");
+            write("#define CCNE(a, b, c) ((a) != 0 ? (b) : (c))");
+            write("#define CCTR(a, b, c) (true ? (b) : (c))");
+            write("#define CCFL(a, b, c) (false ? (b) : (c))");
             write("");
 
             write("#define GetCCVec(a, b) mix(mix(vec##b(0), vec##b(-1), lessThan(a"
                 + ", vec##b(0))), vec##b(1), greaterThan(a, vec##b(0)))");
-            write("#define CCEQVec(a, b, c, d) mix(c, d, equal(a, vec##b(0)))");
-            write("#define CCGEVec(a, b, c, d) mix(c, d, greaterThanEqual(a, vec##b(0)))");
-            write("#define CCGTVec(a, b, c, d) mix(c, d, greaterThan(a, vec##b(0)))");
-            write("#define CCLEVec(a, b, c, d) mix(c, d, lessThanEqual(a, vec##b(0)))");
-            write("#define CCLTVec(a, b, c, d) mix(c, d, lessThan(a, vec##b(0)))");
-            write("#define CCNEVec(a, b, c, d) mix(c, d, notEqual(a, vec##b(0)))");
-            write("#define CCTRVec(a, b, c, d) mix(c, d, bvec##b(true))");
-            write("#define CCFLVec(a, b, c, d) mix(c, d, bvec##b(false))");
+            write("#define CCEQVec(a, b, c, d) mix(d, c, equal(a, vec##b(0)))");
+            write("#define CCGEVec(a, b, c, d) mix(d, c, greaterThanEqual(a, vec##b(0)))");
+            write("#define CCGTVec(a, b, c, d) mix(d, c, greaterThan(a, vec##b(0)))");
+            write("#define CCLEVec(a, b, c, d) mix(d, c, lessThanEqual(a, vec##b(0)))");
+            write("#define CCLTVec(a, b, c, d) mix(d, c, lessThan(a, vec##b(0)))");
+            write("#define CCNEVec(a, b, c, d) mix(d, c, notEqual(a, vec##b(0)))");
+            write("#define CCTRVec(a, b, c, d) mix(d, c, bvec##b(true))");
+            write("#define CCFLVec(a, b, c, d) mix(d, c, bvec##b(false))");
 
             void write(string str)
             {
