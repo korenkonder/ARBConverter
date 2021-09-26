@@ -114,12 +114,12 @@ namespace ARBConverter
                     default: return;
                 }
                 if (File.Exists(d + "fail")) File.Delete(d + "fail");
-                s = File.OpenWrite(d);
-                s.SetLength(0);
+                s = new MemoryStream();;
 
                 try
                 {
                     WriteProgram();
+                    File.WriteAllBytes(d, ((MemoryStream)s).ToArray());
                     s.Close();
                 }
                 catch (Exception e)
@@ -150,18 +150,18 @@ namespace ARBConverter
 
         private void WriteSharedVertGLSL()
         {
-            write($"layout (location = {0}) in {"vec4"} {"aPos"};");
-            write($"layout (location = {1}) in {"vec4"} {"aWeight"};");
-            write($"layout (location = {2}) in {"vec4"} {"aNormal"};");
-            write($"layout (location = {3}) in {"vec4"} {"aColor0"};");
-            write($"layout (location = {4}) in {"vec4"} {"aColor1"};");
-            write($"layout (location = {5}) in {"float"} {"aFogCoord"};");
+            write($"layout(location = {0}) in {"vec4"} {"aPos"};");
+            write($"layout(location = {1}) in {"vec4"} {"aWeight"};");
+            write($"layout(location = {2}) in {"vec4"} {"aNormal"};");
+            write($"layout(location = {3}) in {"vec4"} {"aColor0"};");
+            write($"layout(location = {4}) in {"vec4"} {"aColor1"};");
+            write($"layout(location = {5}) in {"float"} {"aFogCoord"};");
             for (int i = 0; i < MAX_TEXTURE_COORDS_ARB; i++)
-                write($"layout (location = {8 + i}) in {"vec4"} {$"aTexCoord{i}"};");
+                write($"layout(location = {8 + i}) in {"vec4"} {$"aTexCoord{i}"};");
             //for (int i = 0; i < MAX_VERTEX_UNITS_ARB; i++)
-            //    write($"layout (location = {location++}) in {"vec4"} {$"aWeight{i}"};");
+            //    write($"layout(location = {location++}) in {"vec4"} {$"aWeight{i}"};");
             for (int i = 0; i < MAX_VERTEX_ATTRIBS_ARB; i++)
-                write($"layout (location = {i}) in {"vec4"} {$"aAttrib{i}"};");
+                write($"layout(location = {i}) in {"vec4"} {$"aAttrib{i}"};");
             write("");
 
             write($"out vec4 {$"fAttrib[{MAX_VERTEX_ATTRIBS_ARB}]"};");
@@ -175,8 +175,7 @@ namespace ARBConverter
             write($"#define {"MAX_PROGRAM_LOCAL_PARAMETERS_ARB"} {MAX_PROGRAM_LOCAL_PARAMETERS_ARB}");
             write("");
 
-            write($"layout(location = {MAX_TEXTURE_IMAGE_UNITS_ARB}) uniform vec4" +
-                " PrgVertLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
+            write("layout(location = 0) uniform vec4 PrgVertLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
 
             void write(string str)
             {
@@ -190,7 +189,7 @@ namespace ARBConverter
         {
             int location = 0;
             for (int i = 0; i < MAX_DRAW_BUFFERS_ARB; i++)
-                write($"layout (location = {location++}) out vec4 oColor{i};");
+                write($"layout(location = {location++}) out vec4 oColor{i};");
             write("");
 
             write($"in vec4 {$"fAttrib[{MAX_VERTEX_ATTRIBS_ARB}]"};");
@@ -204,8 +203,8 @@ namespace ARBConverter
             write($"#define {"MAX_PROGRAM_LOCAL_PARAMETERS_ARB"} {MAX_PROGRAM_LOCAL_PARAMETERS_ARB}");
             write("");
 
-            write($"layout(location = {MAX_TEXTURE_IMAGE_UNITS_ARB}) uniform vec4" +
-                " PrgFragLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
+            write($"layout(location = {MAX_PROGRAM_LOCAL_PARAMETERS_ARB})" 
+                + " uniform vec4 PrgVertLocal[MAX_PROGRAM_LOCAL_PARAMETERS_ARB];");
 
             void write(string str)
             {
@@ -230,27 +229,23 @@ namespace ARBConverter
             write($"#define {"MAX_VERTEX_UNITS_ARB"} {MAX_VERTEX_UNITS_ARB}");
             write("");
 
-            write("struct ClipStruct");
-            write("{");
+            write("struct ClipStruct {");
             write($"{Tab}vec4 Plane;");
             write("};");
             write("");
 
-            write("struct DepthStruct");
-            write("{");
+            write("struct DepthStruct {");
             write($"{Tab}vec4 Range;");
             write("};");
             write("");
 
-            write("struct FogStruct");
-            write("{");
+            write("struct FogStruct {");
             write($"{Tab}vec4 Color;");
             write($"{Tab}vec4 Params;");
             write("};");
             write("");
 
-            write("struct LightStruct");
-            write("{");
+            write("struct LightStruct {");
             write($"{Tab}vec4 Ambient;");
             write($"{Tab}vec4 Diffuse;");
             write($"{Tab}vec4 Specular;");
@@ -261,23 +256,20 @@ namespace ARBConverter
             write("};");
             write("");
 
-            write("struct LightModelStruct");
-            write("{");
+            write("struct LightModelStruct {");
             write($"{Tab}vec4 Ambient;");
             write($"{Tab}vec4 SceneColor;");
             write("};");
             write("");
 
-            write("struct LightProdStruct");
-            write("{");
+            write("struct LightProdStruct {");
             write($"{Tab}vec4 Ambient;");
             write($"{Tab}vec4 Diffuse;");
             write($"{Tab}vec4 Specular;");
             write("};");
             write("");
 
-            write("struct MaterialStruct");
-            write("{");
+            write("struct MaterialStruct {");
             write($"{Tab}vec4 Ambient;");
             write($"{Tab}vec4 Diffuse;");
             write($"{Tab}vec4 Specular;");
@@ -286,8 +278,7 @@ namespace ARBConverter
             write("};");
             write("");
 
-            write("struct MatrixStruct");
-            write("{");
+            write("struct MatrixStruct {");
             write($"{Tab}mat4 ModelView[MAX_VERTEX_UNITS_ARB];");
             write($"{Tab}mat4 Projection;");
             write($"{Tab}mat4 MVP;");
@@ -297,15 +288,13 @@ namespace ARBConverter
             write("};");
             write("");
 
-            write("struct PointStruct");
-            write("{");
+            write("struct PointStruct {");
             write($"{Tab}vec4 Size;");
             write($"{Tab}vec4 Attenuation;");
             write("};");
             write("");
 
-            write("struct TexGenStruct");
-            write("{");
+            write("struct TexGenStruct {");
             write($"{Tab}vec4 EyeS;");
             write($"{Tab}vec4 EyeT;");
             write($"{Tab}vec4 EyeR;");
@@ -317,14 +306,12 @@ namespace ARBConverter
             write("};");
             write("");
 
-            write("struct TexEnvStruct");
-            write("{");
+            write("struct TexEnvStruct {");
             write($"{Tab}vec4 Color;");
             write("};");
             write("");
 
-            write("struct StateStruct");
-            write("{");
+            write("struct StateStruct {");
             write($"{Tab}MaterialStruct Material[2];");
             write($"{Tab}LightStruct Light[MAX_LIGHTS];");
             write($"{Tab}LightModelStruct LightModel[2];");
@@ -342,14 +329,12 @@ namespace ARBConverter
             write("};");
             write("");
 
-            write("layout (binding = 0, std140) uniform StateUniform");
-            write("{");
+            write("layout(binding = 0, std140) uniform StateUniform {");
             write($"{Tab}StateStruct State;");
             write("};");
             write("");
 
-            write("layout (binding = 1, std140) uniform EnvUniform");
-            write("{");
+            write("layout(binding = 1, std140) uniform EnvUniform {");
             write($"{Tab}vec4 PrgFragEnv[MAX_PROGRAM_ENV_PARAMETERS_ARB];");
             write($"{Tab}vec4 PrgVertEnv[MAX_PROGRAM_ENV_PARAMETERS_ARB];");
             write("};");
@@ -357,8 +342,7 @@ namespace ARBConverter
 
             for (int i = 0; i < MAX_PROGRAM_PARAMETER_BUFFER_BINDINGS_NV - 2; i++)
             {
-                write($"layout (binding = {2 + i}, std140) uniform Buffer{i}Uniform");
-                write("{");
+                write($"layout(binding = {2 + i}, std140) uniform Buffer{i}Uniform {{");
                 write($"{Tab}vec4 Buffer{i}[MAX_PROGRAM_PARAMETER_BUFFER_SIZE_NV / 16];");
                 write("};");
                 write("");
@@ -493,7 +477,7 @@ namespace ARBConverter
                     else n = new NameAttrib(m, b[0]);
 
                     t = GetSrcOperandType(mode, m, b[1], abs, sign);
-                    renameAlt.Add(b[0], TypeToString(t, m));
+                    renameAlt.Add(b[0], $"({TypeToString(t, m)})");
                     attrib.Add(n, t);
                 }
                 else if (str.StartsWith("PARAM "))
@@ -512,6 +496,7 @@ namespace ARBConverter
 
                         if (!(t is TypeArray ta)) ta = default;
                         if (!(t is TypeIndex ti)) ti = default;
+                        if (!(t is TypeIndexIndex tii)) tii = default;
                         if (!(t is TypeRange tr)) tr = default;
                         if (int.TryParse(d, out int v)) { }
                         else if (!b[0].EndsWith("[]")) throw new Exception("0x0008 PARAM: Not a number");
@@ -519,9 +504,11 @@ namespace ARBConverter
                         else if (t is TypeArray && ta.Array != null) v = ta.Array.Length;
                         else throw new Exception("0x0000 unk");
 
+                        bool rowAccess = false;
                         string tmp = "{0}";
-                        string tmp2 = $"{e}[{tmp}]";
-                        string tmp3 = "State.Matrix";
+                        string tmp2 = $"{e}({tmp})";
+                        string tmp3 = $"{e}[{tmp}]";
+                        string tmp4 = "State.Matrix";
                         switch (t.Var)
                         {
                             case Var.Array:
@@ -529,75 +516,156 @@ namespace ARBConverter
                                 continue;
                             //case Var.FragmentInputClipNO:
                             case Var.FragmentProgramEnvNO         :
-                                tmp3 = $"PrgFragEnv";   if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
+                                tmp4 = $"PrgFragEnv";   if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
                             case Var.FragmentProgramLocalNO       :
-                                tmp3 = $"PrgFragLocal"; if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
+                                tmp4 = $"PrgFragLocal"; if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
                             case Var.VertexProgramEnvNO           :
-                                tmp3 = $"PrgVertEnv";   if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
+                                tmp4 = $"PrgVertEnv";   if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
                             case Var.VertexProgramLocalNO         :
-                                tmp3 = $"PrgVertLocal"; if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
-                            case Var.StateMatrixModelViewN        :
-                                tmp3 += $".ModelView[{ti.ID}]";         break;
-                            case Var.StateMatrixMVP               :
-                                tmp3 += $".MVP";                        break;
-                            case Var.StateMatrixPaletteN          :
-                                tmp3 += $".Palette[{ti.ID}]";           break;
-                            case Var.StateMatrixProgramN          :
-                                tmp3 += $".Program[{ti.ID}]";           break;
-                            case Var.StateMatrixProjection        :
-                                tmp3 += $".Projection";                 break;
-                            case Var.StateMatrixTextureN          :
-                                tmp3 += $".Texture[{ti.ID}]";           break;
-                            case Var.StateMatrixInvModelViewN     :
-                                tmp3 += $"Inv.ModelView[{ti.ID}]";      break;
-                            case Var.StateMatrixInvMVP            :
-                                tmp3 += $"Inv.MVP";                     break;
-                            case Var.StateMatrixInvPaletteN       :
-                                tmp3 += $"Inv.Palette[{ti.ID}]";        break;
-                            case Var.StateMatrixInvProgramN       :
-                                tmp3 += $"Inv.Program[{ti.ID}]";        break;
-                            case Var.StateMatrixInvProjection     :
-                                tmp3 += $"Inv.Projection";              break;
-                            case Var.StateMatrixInvTextureN       :
-                                tmp3 += $"Inv.Texture[{ti.ID}]";        break;
-                            case Var.StateMatrixTransModelViewN   :
-                                tmp3 += $"Trans.ModelView[{ti.ID}]";    break;
-                            case Var.StateMatrixTransMVP          :
-                                tmp3 += $"Trans.MVP";                   break;
-                            case Var.StateMatrixTransPaletteN     :
-                                tmp3 += $"Trans.Palette[{ti.ID}]";      break;
-                            case Var.StateMatrixTransProgramN     :
-                                tmp3 += $"Trans.Program[{ti.ID}]";      break;
-                            case Var.StateMatrixTransProjection   :
-                                tmp3 += $"Trans.Projection";            break;
-                            case Var.StateMatrixTransTextureN     :
-                                tmp3 += $"Trans.Texture[{ti.ID}]";      break;
-                            case Var.StateMatrixInvTransModelViewN:
-                                tmp3 += $"InvTrans.ModelView[{ti.ID}]"; break;
-                            case Var.StateMatrixInvTransMVP       :
-                                tmp3 += $"InvTrans.MVP";                break;
-                            case Var.StateMatrixInvTransPaletteN  :
-                                tmp3 += $"InvTrans.Palette[{ti.ID}]";   break;
-                            case Var.StateMatrixInvTransProgramN  :
-                                tmp3 += $"InvTrans.Program[{ti.ID}]";   break;
-                            case Var.StateMatrixInvTransProjection:
-                                tmp3 += $"InvTrans.Projection";         break;
-                            case Var.StateMatrixInvTransTextureN  :
-                                tmp3 += $"InvTrans.Texture[{ti.ID}]";   break;
+                                tmp4 = $"PrgVertLocal"; if (tr.IDStart > 0) tmp = $"{tmp} + {tr.IDStart}"; break;
+                            case Var.StateMatModelViewN        :
+                                tmp4 += $"Trans.ModelView[{ti.ID}]";    break;
+                            case Var.StateMatMVP               :
+                                tmp4 += $"Trans.MVP";                   break;
+                            case Var.StateMatPaletteN          :
+                                tmp4 += $"Trans.Palette[{ti.ID}]";      break;
+                            case Var.StateMatProgramN          :
+                                tmp4 += $"Trans.Program[{ti.ID}]";      break;
+                            case Var.StateMatProjection        :
+                                tmp4 += $"Trans.Projection";            break;
+                            case Var.StateMatTextureN          :
+                                tmp4 += $"Trans.Texture[{ti.ID}]";      break;
+                            case Var.StateMatInvModelViewN     :
+                                tmp4 += $"InvTrans.ModelView[{ti.ID}]"; break;
+                            case Var.StateMatInvMVP            :
+                                tmp4 += $"InvTrans.MVP";                break;
+                            case Var.StateMatInvPaletteN       :
+                                tmp4 += $"InvTrans.Palette[{ti.ID}]";   break;
+                            case Var.StateMatInvProgramN       :
+                                tmp4 += $"InvTrans.Program[{ti.ID}]";   break;
+                            case Var.StateMatInvProjection     :
+                                tmp4 += $"InvTrans.Projection";         break;
+                            case Var.StateMatInvTextureN       :
+                                tmp4 += $"InvTrans.Texture[{ti.ID}]";   break;
+                            case Var.StateMatTransModelViewN   :
+                                tmp4 += $".ModelView[{ti.ID}]";         break;
+                            case Var.StateMatTransMVP          :
+                                tmp4 += $".MVP";                        break;
+                            case Var.StateMatTransPaletteN     :
+                                tmp4 += $".Palette[{ti.ID}]";           break;
+                            case Var.StateMatTransProgramN     :
+                                tmp4 += $".Program[{ti.ID}]";           break;
+                            case Var.StateMatTransProjection   :
+                                tmp4 += $".Projection";                 break;
+                            case Var.StateMatTransTextureN     :
+                                tmp4 += $".Texture[{ti.ID}]";           break;
+                            case Var.StateMatInvTransModelViewN:
+                                tmp4 += $"Inv.ModelView[{ti.ID}]";      break;
+                            case Var.StateMatInvTransMVP       :
+                                tmp4 += $"Inv.MVP";                     break;
+                            case Var.StateMatInvTransPaletteN  :
+                                tmp4 += $"Inv.Palette[{ti.ID}]";        break;
+                            case Var.StateMatInvTransProgramN  :
+                                tmp4 += $"Inv.Program[{ti.ID}]";        break;
+                            case Var.StateMatInvTransProjection:
+                                tmp4 += $"Inv.Projection";              break;
+                            case Var.StateMatInvTransTextureN  :
+                                tmp4 += $"Inv.Texture[{ti.ID}]";        break;
+                            case Var.StateMatModelViewNRowO        :
+                                rowAccess = true;
+                                tmp4 += $"Trans.ModelView[{tii.ID0}][{tii.ID1}]";    break;
+                            case Var.StateMatMVPRowO               :
+                                rowAccess = true;
+                                tmp4 += $"Trans.MVP[{ti.ID}]";                       break;
+                            case Var.StateMatPaletteNRowO          :
+                                rowAccess = true;
+                                tmp4 += $"Trans.Palette[{tii.ID0}][{tii.ID1}]";      break;
+                            case Var.StateMatProgramNRowO          :
+                                rowAccess = true;
+                                tmp4 += $"Trans.Program[{tii.ID0}][{tii.ID1}]";      break;
+                            case Var.StateMatProjectionRowO        :
+                                rowAccess = true;
+                                tmp4 += $"Trans.Projection[{ti.ID}]";                break;
+                            case Var.StateMatTextureNRowO          :
+                                rowAccess = true;
+                                tmp4 += $"Trans.Texture[{tii.ID0}][{tii.ID1}]";      break;
+                            case Var.StateMatInvModelViewNRowO     :
+                                rowAccess = true;
+                                tmp4 += $"InvTrans.ModelView[{tii.ID0}][{tii.ID1}]"; break;
+                            case Var.StateMatInvMVPRowO            :
+                                rowAccess = true;
+                                tmp4 += $"InvTrans.MVP[{ti.ID}]";                    break;
+                            case Var.StateMatInvPaletteNRowO       :
+                                rowAccess = true;
+                                tmp4 += $"InvTrans.Palette[{tii.ID0}][{tii.ID1}]";   break;
+                            case Var.StateMatInvProgramNRowO:
+                                rowAccess = true;
+                                tmp4 += $"InvTrans.Program[{tii.ID0}][{tii.ID1}]";   break;
+                            case Var.StateMatInvProjectionRowO     :
+                                rowAccess = true;
+                                tmp4 += $"InvTrans.Projection[{ti.ID}]";             break;
+                            case Var.StateMatInvTextureNRowO       :
+                                rowAccess = true;
+                                tmp4 += $"InvTrans.Texture[{tii.ID0}][{tii.ID1}]";   break;
+                            case Var.StateMatTransModelViewNRowO   :
+                                rowAccess = true;
+                                tmp4 += $".ModelView[{tii.ID0}][{tii.ID1}]";         break;
+                            case Var.StateMatTransMVPRowO          :
+                                rowAccess = true;
+                                tmp4 += $".MVP[{ti.ID}]";                            break;
+                            case Var.StateMatTransPaletteNRowO     :
+                                rowAccess = true;
+                                tmp4 += $".Palette[{tii.ID0}][{tii.ID1}]";           break;
+                            case Var.StateMatTransProgramNRowO     :
+                                rowAccess = true;
+                                tmp4 += $".Program[{tii.ID0}][{tii.ID1}]";           break;
+                            case Var.StateMatTransProjectionRowO   :
+                                rowAccess = true;
+                                tmp4 += $".Projection[{ti.ID}]";                     break;
+                            case Var.StateMatTransTextureNRowO     :
+                                rowAccess = true;
+                                tmp4 += $".Texture[{tii.ID0}][{tii.ID1}]";           break;
+                            case Var.StateMatInvTransModelViewNRowO:
+                                rowAccess = true;
+                                tmp4 += $"Inv.ModelView[{tii.ID0}][{tii.ID1}]";      break;
+                            case Var.StateMatInvTransMVPRowO       :
+                                rowAccess = true;
+                                tmp4 += $"Inv.MVP[{ti.ID}]";                         break;
+                            case Var.StateMatInvTransPaletteNRowO  :
+                                rowAccess = true;
+                                tmp4 += $"Inv.Palette[{tii.ID0}][{tii.ID1}]";        break;
+                            case Var.StateMatInvTransProgramNRowO  :
+                                rowAccess = true;
+                                tmp4 += $"Inv.Program[{tii.ID0}][{tii.ID1}]";        break;
+                            case Var.StateMatInvTransProjectionRowO:
+                                rowAccess = true;
+                                tmp4 += $"Inv.Projection[{ti.ID}]";                  break;
+                            case Var.StateMatInvTransTextureNRowO  :
+                                rowAccess = true;
+                                tmp4 += $"Inv.Texture[{tii.ID0}][{tii.ID1}]";        break;
                             default:
                                 throw new Exception($"0x0044 PARAM: Invalid Type {t.Var}");
                         }
-                        tmp3 += $"[{tmp}]";
-                        renameAlt.Add(string.Format(tmp2, "N"), string.Format(tmp3, "N"));
-                        rename.Add(tmp2, tmp3);
-                        for (i1 = 0; i1 < v; i1++)
-                            rename.Add(string.Format(tmp2, i1), string.Format(tmp3, i1));
+
+                        if (rowAccess)
+                        {
+                            renameAlt.Add(e, $"({tmp4})");
+                            rename.Add(e, e);
+                        }
+                        else
+                        {
+                            tmp4 += $"[{tmp}]";
+                            renameAlt.Add(string.Format(tmp2, "N"), $"({string.Format(tmp4, "N")})");
+                            rename.Add(tmp3, tmp2);
+                            for (i1 = 0; i1 < v; i1++)
+                                rename.Add(string.Format(tmp3, i1), string.Format(tmp2, i1));
+                        }
                     }
                     else if (t is Type || t is TypeIndex || t is TypeIndexIndex || t is TypeIndexName)
                     {
                         string tmp = TypeToString(t, m);
-                        renameAlt.Add(b[0], tmp);
-                        rename.Add(b[0], tmp);
+                        renameAlt.Add(b[0], $"({tmp})");
+                        rename.Add(b[0], b[0]);
                     }
                     else if (!(t is TypeRange))
                         param.Add(new NameParam(m, b[0]), t);
@@ -633,7 +701,7 @@ namespace ARBConverter
                     else n = new NameOutput(m, b[0]);
 
                     t = GetSrcOperandType(mode, m, b[1], abs, sign);
-                    renameAlt.Add(b[0], TypeToString(t, m));
+                    renameAlt.Add(b[0], $"({TypeToString(t, m)})");
                     output.Add(n, t);
                 }
                 else if (str.StartsWith("ADDRESS "))
@@ -698,28 +766,29 @@ namespace ARBConverter
                         else throw new Exception("0x0077: Not a number");
 
                         string tmp = "{0}";
-                        string tmp2 = $"{e}[{tmp}]";
-                        string tmp3 = "State.Matrix";
+                        string tmp2 = $"{e}({tmp})";
+                        string tmp3 = $"{e}[{tmp}]";
+                        string tmp4 = "State.Matrix";
                         switch (t.Var)
                         {
                             case Var.ProgramBufferN:
-                                tmp3 = $"Buffer{ti.ID}"; break;
+                                tmp4 = $"Buffer{ti.ID}"; break;
                             case Var.ProgramBufferNOP:
-                                tmp3 = $"Buffer{tir.ID}"; if (tir.IDStart > 0) tmp = $"{tmp} + {tir.IDStart}"; break;
+                                tmp4 = $"Buffer{tir.ID}"; if (tir.IDStart > 0) tmp = $"{tmp} + {tir.IDStart}"; break;
                             default:
                                 throw new Exception($"0x0078 Invalid Type {t.Var}");
                         }
-                        tmp3 += $"[{tmp}]";
-                        renameAlt.Add(string.Format(tmp2, "N"), string.Format(tmp3, "N"));
-                        rename.Add(tmp2, tmp3);
+                        tmp4 += $"[{tmp}]";
+                        renameAlt.Add(string.Format(tmp2, "N"), $"({string.Format(tmp4, "N")})");
+                        rename.Add(tmp3, tmp2);
                         for (i1 = 0; i1 < v; i1++)
-                            rename.Add(string.Format(tmp2, i1), string.Format(tmp3, i1));
+                            rename.Add(string.Format(tmp3, i1), string.Format(tmp2, i1));
                     }
                     else if (t is TypeIndexIndex tii)
                     {
                         string tmp = TypeToString(t, m);
-                        renameAlt.Add(b[0], tmp);
-                        rename.Add(b[0], tmp);
+                        renameAlt.Add(b[0], $"({tmp})");
+                        rename.Add(b[0], b[0]);
                     }
                     else
                         throw new Exception("0x0079 unk");
@@ -760,8 +829,8 @@ namespace ARBConverter
                 {
                     string a = str.Substring(6).Replace(" ", "");
                     string[] b = a.Split('=');
-                    renameAlt.Add(b[0], b[1]);
-                    rename.Add(b[0], b[1]);
+                    renameAlt.Add(b[0], $"({b[1]})");
+                    rename.Add(b[0], b[0]);
                     continue;
                 }
 
@@ -964,7 +1033,7 @@ namespace ARBConverter
                     if (@in.ContainsKey(attribArr[i]))
                         throw new Exception($"0x0049 {attribArr[i]} is already present");
 
-                    @in.Add(attribArr[i], TypeToString(attrib[attribArr[i]], Modifier.FLOAT));
+                    @in.Add(attribArr[i], attribArr[i].Var);
                 }
                 attribArr = null;
             }
@@ -977,7 +1046,7 @@ namespace ARBConverter
                     if (@out.ContainsKey(outputArr[i]))
                         throw new Exception($"0x004A {outputArr[i]} is already present");
 
-                    @out.Add(outputArr[i], TypeToString(output[outputArr[i]], Modifier.FLOAT));
+                    @out.Add(outputArr[i], outputArr[i].Var);
                 }
                 outputArr = null;
             }
@@ -1255,7 +1324,7 @@ namespace ARBConverter
                     else if (name.StartsWith("TextureSHADOW2D")) type = "sampler2DShadow";
                     else if (name.StartsWith("TextureSHADOWRECT")) type = "sampler2DRectShadow";
                     else throw new Exception("0x00A4 Invalid");
-                    write($"layout(location = {i}) uniform {type} {name};");
+                    write($"layout(binding = {i}) uniform {type} {name};");
                 }
                 write("");
             }
@@ -1271,7 +1340,7 @@ namespace ARBConverter
                 string[] renameAltKeyArr = GetDictKeys  (renameAlt);
                 string[] renameAltValArr = GetDictValues(renameAlt);
                 for (i = 0; i < i0; i++)
-                    write($"// Renamed \"{renameAltKeyArr[i]}\" to \"{renameAltValArr[i]}\"");
+                    write($"#define {renameAltKeyArr[i]} {renameAltValArr[i]}");
                 if (i0 > 0) write("");
             }
 
@@ -1279,8 +1348,7 @@ namespace ARBConverter
             i0 = inst.Count;
             i1 = 0;
             instLevel = 0;
-            write("void main()");
-            write("{");
+            write("void main() {");
             if (mode == Mode.FragmentProgram)
                 write($"{Tab}vec4 frontFacing = vec4(gl_FrontFacing ? 1.0 : -1.0, 0.0, 0.0, 1.0);");
             List<string> unkInsts = WriteInsts(Tab, ref i, ref i0, ref i1);
@@ -1464,9 +1532,9 @@ namespace ARBConverter
                     writeInst(dms, "ceil(", ")");
                     break;
                 case CMP cmp:
-                    getInstSrc1Op(cmp.SOp1, dms);
+                    getInstSrc1Op(cmp.SOp3, dms);
                     getInstSrc2Op(cmp.SOp2, dms);
-                    getInstSrc3Op(cmp.SOp3, dms);
+                    getInstSrc3Op(cmp.SOp1, dms);
 
                     writeInst3(dms, "mix(", ", ", ", lessThan(", ", vec4(0)))");
                     break;
@@ -1759,7 +1827,7 @@ namespace ARBConverter
 
                     vec = getTypeMod(Modifier.FLOAT, 4);
                     writeInstAction(dms, () => {
-                        WriteString(s, $"mix({vec}(1), {vec}(0), greaterThanEqual(");
+                        WriteString(s, $"{vec}(greaterThanEqual(");
                         writeSrcDms(s, s1t, s1n, s1sw, "");
                         WriteString(s, ", ");
                         writeSrcDms(s, s2t, s2n, s2sw, "");
@@ -1772,7 +1840,7 @@ namespace ARBConverter
 
                     vec = getTypeMod(Modifier.FLOAT, 4);
                     writeInstAction(dms, () => {
-                        WriteString(s, $"mix({vec}(1), {vec}(0), greaterThan(");
+                        WriteString(s, $"{vec}(greaterThan(");
                         writeSrcDms(s, s1t, s1n, s1sw, "");
                         WriteString(s, ", ");
                         writeSrcDms(s, s2t, s2n, s2sw, "");
@@ -1790,7 +1858,7 @@ namespace ARBConverter
 
                     vec = getTypeMod(Modifier.FLOAT, 4);
                     writeInstAction(dms, () => {
-                        WriteString(s, $"mix({vec}(1), {vec}(0), lessThanEqual(");
+                        WriteString(s, $"{vec}(lessThanEqual(");
                         writeSrcDms(s, s1t, s1n, s1sw, "");
                         WriteString(s, ", ");
                         writeSrcDms(s, s2t, s2n, s2sw, "");
@@ -1803,7 +1871,7 @@ namespace ARBConverter
 
                     vec = getTypeMod(Modifier.FLOAT, 4);
                     writeInstAction(dms, () => {
-                        WriteString(s, $"mix({vec}(1), {vec}(0), lessThan(");
+                        WriteString(s, $"{vec}(lessThan(");
                         writeSrcDms(s, s1t, s1n, s1sw, "");
                         WriteString(s, ", ");
                         writeSrcDms(s, s2t, s2n, s2sw, "");
@@ -1816,7 +1884,7 @@ namespace ARBConverter
 
                     vec = getTypeMod(Modifier.FLOAT, 4);
                     writeInstAction(dms, () => {
-                        WriteString(s, $"mix({vec}(1), {vec}(0), notEqual(");
+                        WriteString(s, $"{vec}(notEqual(");
                         writeSrcDms(s, s1t, s1n, s1sw, "");
                         WriteString(s, ", ");
                         writeSrcDms(s, s2t, s2n, s2sw, "");
@@ -2232,9 +2300,7 @@ namespace ARBConverter
                     WriteString(s, tab);
                     WriteString(s, "if (");
                     writeCCComp(cc.Swizzle, "!");
-                    WriteString(s, ")\n");
-                    WriteString(s, tab);
-                    WriteString(s, "{\n");
+                    WriteString(s, ") {\n");
                     i++;
                     tmpNum = i1;
                     WriteInsts(tab + Tab, ref i, ref i0, ref tmpNum);
@@ -2250,9 +2316,7 @@ namespace ARBConverter
                     WriteString(s, tab);
                     WriteString(s, "if (");
                     writeCCComp(cc.Swizzle, "");
-                    WriteString(s, $") // {cal.Label}\n");
-                    WriteString(s, tab);
-                    WriteString(s, "{\n");
+                    WriteString(s, $") {{ // {cal.Label}\n");
                     i++;
                     for (i2 = i; i2 < i0; i2++)
                         if (this.inst[i2] is Label)
@@ -2276,10 +2340,7 @@ namespace ARBConverter
                     WriteString(s, "}\n");
                     for (i2 = 0; i2 < instLevel; i2++)
                         WriteString(s, Tab);
-                    WriteString(s, "else\n");
-                    for (i2 = 0; i2 < instLevel; i2++)
-                        WriteString(s, Tab);
-                    WriteString(s, "{\n");
+                    WriteString(s, "else {\n");
                     break;
                 case ENDIF endif:
                     addEnd = false;
@@ -2314,9 +2375,7 @@ namespace ARBConverter
                     WriteString(s, tab);
                     WriteString(s, "if (");
                     writeCCComp(cc.Swizzle, "");
-                    WriteString(s, ")\n");
-                    WriteString(s, tab);
-                    WriteString(s, "{\n");
+                    WriteString(s, ") {\n");
                     i++;
                     tmpNum = i1;
                     WriteInsts(tab + Tab, ref i, ref i0, ref tmpNum);
@@ -2388,7 +2447,7 @@ namespace ARBConverter
                         WriteString(s, "}\n");
                     else
                     {
-                        WriteString(s, $"{"}"} // {lbl.Name}\n");
+                        WriteString(s, $"}} // {lbl.Name}\n");
                         i++;
                     }
                     break;
@@ -2408,9 +2467,7 @@ namespace ARBConverter
                     WriteString(s, $"int tmp_{i1 + 1} = tmp_{i1}.y; ");
                     WriteString(s, $"tmp_{i1 + 1} < tmp_{i1}.x; ");
                     WriteString(s, $"tmp_{i1 + 1} += tmp_{i1}.z");
-                    WriteString(s, ")\n");
-                    WriteString(s, tab);
-                    WriteString(s, "{\n");
+                    WriteString(s, ") {\n");
                     i++;
                     tmpNum = i1 + 2;
                     WriteInsts(tab + Tab, ref i, ref i0, ref tmpNum);
@@ -2432,9 +2489,7 @@ namespace ARBConverter
                     WriteString(s, $"int tmp_{i1 + 1} = 0; ");
                     WriteString(s, $"tmp_{i1 + 1} < tmp_{i1}; ");
                     WriteString(s, $"tmp_{i1 + 1}++");
-                    WriteString(s, ")\n");
-                    WriteString(s, tab);
-                    WriteString(s, "{\n");
+                    WriteString(s, ") {\n");
                     i++;
                     tmpNum = i1 + 2;
                     WriteInsts(tab + Tab, ref i, ref i0, ref tmpNum);
@@ -2922,21 +2977,32 @@ namespace ARBConverter
                     i2 = str.IndexOf(']');
                     string d = i2 + 2 > str.Length ? str.Substring(i1 + 1)
                         : str.Substring(i1 + 1, i2 - i1);
-                    d = d.Replace("]", "");
+                    d = d.Substring(0, d.IndexOf(']'));
                     string e = str.Substring(0, i1);
                     string h = i2 + 2 > str.Length ? "" : str.Substring(i2 + 2);
+                    string g = "";
                     if (!int.TryParse(d, out i2)) i2 = -1;
                     if (d.Contains(".."))
                         throw new Exception("0x0022 Unsupported");
 
                     i1 = h.IndexOf('[');
-                    if (i1 > 0)
+                    if (i1 >= 0)
                     {
-                        i3 = h.IndexOf(']');
-                        string f = i3 + 2 > h.Length ? h.Substring(i1 + 1)
+                        string i = h;
+                        if (h.IndexOf('.') >= 0)
+                        {
+                            i = h.Substring(h.IndexOf('.') + 1);
+                            h = h.Substring(0, h.IndexOf('.'));
+                            g = i.Substring(0, i.IndexOf('['));
+                            i1 = i.IndexOf('[');
+                        }
+                        else
+                            h = h.Substring(0, i1);
+
+                        i3 = i.IndexOf(']');
+                        string f = i3 + 2 > i.Length ? i.Substring(i1 + 1)
                             : h.Substring(i1 + 1, i3 - i1);
-                        f = f.Replace("]", "");
-                        h = h.Substring(0, i1);
+                        f = f.Substring(0, f.IndexOf(']'));
                         if (!int.TryParse(f, out i3)) i3 = -1;
                         if (f.Contains(".."))
                             throw new Exception("0x007C Unsupported");
@@ -2948,59 +3014,223 @@ namespace ARBConverter
                             "matrix.modelview" when i2 != -1 =>
                                 t = h switch
                                 {
-                                    ""          => new TypeIndex(Var.StateMatrixModelViewN        , abs, sign, i2),
-                                    "inverse"   => new TypeIndex(Var.StateMatrixInvModelViewN     , abs, sign, i2),
-                                    "transpose" => new TypeIndex(Var.StateMatrixTransModelViewN   , abs, sign, i2),
-                                    "invtrans"  => new TypeIndex(Var.StateMatrixInvTransModelViewN, abs, sign, i2),
+                                    ""          =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatModelViewN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatModelViewNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A5 Unsupported"),
+                                        },
+                                    "inverse"   =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvModelViewN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvModelViewNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A6 Unsupported"),
+                                        },
+                                    "transpose" =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatTransModelViewN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatTransModelViewNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A7 Unsupported"),
+                                        },
+                                    "invtrans"  =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvTransModelViewN, abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvTransModelViewNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A8 Unsupported"),
+                                        },
                                     "row" when i3 != -1 =>
-                                        new TypeIndexIndex(Var.StateMatrixModelViewNRowO, abs, sign, i2, i3),
+                                        new TypeIndexIndex(Var.StateMatModelViewNRowO, abs, sign, i2, i3),
                                     _ => throw new Exception("0x005C Unsupported"),
                                 },
                             "matrix.texture" when i2 != -1 =>
                                 t = h switch
                                 {
-                                    ""          => new TypeIndex(Var.StateMatrixTextureN        , abs, sign, i2),
-                                    "inverse"   => new TypeIndex(Var.StateMatrixInvTextureN     , abs, sign, i2),
-                                    "transpose" => new TypeIndex(Var.StateMatrixTransTextureN   , abs, sign, i2),
-                                    "invtrans"  => new TypeIndex(Var.StateMatrixInvTransTextureN, abs, sign, i2),
+                                    ""          =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatTextureN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatTextureNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A5 Unsupported"),
+                                        },
+                                    "inverse"   =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvTextureN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvTextureNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A6 Unsupported"),
+                                        },
+                                    "transpose" =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatTransTextureN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatTransTextureNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A7 Unsupported"),
+                                        },
+                                    "invtrans"  =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvTransTextureN, abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvTransTextureNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A8 Unsupported"),
+                                        },
                                     "row" when i3 != -1 =>
-                                        new TypeIndexIndex(Var.StateMatrixTextureNRowO, abs, sign, i2, i3),
+                                        new TypeIndexIndex(Var.StateMatTextureNRowO, abs, sign, i2, i3),
                                     _ => throw new Exception("0x005D Unsupported"),
                                 },
                             "matrix.palette" when i2 != -1 =>
                                 t = h switch
                                 {
-                                    ""          => new TypeIndex(Var.StateMatrixPaletteN        , abs, sign, i2),
-                                    "inverse"   => new TypeIndex(Var.StateMatrixInvPaletteN     , abs, sign, i2),
-                                    "transpose" => new TypeIndex(Var.StateMatrixTransPaletteN   , abs, sign, i2),
-                                    "invtrans"  => new TypeIndex(Var.StateMatrixInvTransPaletteN, abs, sign, i2),
+                                    ""          =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatPaletteN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatPaletteNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A5 Unsupported"),
+                                        },
+                                    "inverse"   =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvPaletteN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvPaletteNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A6 Unsupported"),
+                                        },
+                                    "transpose" =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatTransPaletteN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatTransPaletteNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A7 Unsupported"),
+                                        },
+                                    "invtrans"  =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvTransPaletteN, abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvTransPaletteNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A8 Unsupported"),
+                                        },
                                     "row" when i3 != -1 =>
-                                        new TypeIndexIndex(Var.StateMatrixPaletteNRowO, abs, sign, i2, i3),
+                                        new TypeIndexIndex(Var.StateMatPaletteNRowO, abs, sign, i2, i3),
                                     _ => throw new Exception("0x005E Unsupported"),
                                 },
                             "matrix.program" when i2 != -1 =>
                                 t = h switch
                                 {
-                                    ""          => new TypeIndex(Var.StateMatrixProgramN        , abs, sign, i2),
-                                    "inverse"   => new TypeIndex(Var.StateMatrixInvProgramN     , abs, sign, i2),
-                                    "transpose" => new TypeIndex(Var.StateMatrixTransProgramN   , abs, sign, i2),
-                                    "invtrans"  => new TypeIndex(Var.StateMatrixInvTransProgramN, abs, sign, i2),
+                                    ""          =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatProgramN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatProgramNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A5 Unsupported"),
+                                        },
+                                    "inverse"   =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvProgramN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvProgramNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A6 Unsupported"),
+                                        },
+                                    "transpose" =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatTransProgramN         , abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatTransProgramNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A7 Unsupported"),
+                                        },
+                                    "invtrans"  =>
+                                        t = g switch
+                                        {
+                                            ""                  =>
+                                                new TypeIndex(Var.StateMatInvTransProgramN, abs, sign, i2),
+                                            "row" when i3 != -1 =>
+                                                new TypeIndexIndex(Var.StateMatInvTransProgramNRowO, abs, sign, i2, i3),
+                                            _ => throw new Exception("0x00A8 Unsupported"),
+                                        },
                                     "row" when i3 != -1 =>
-                                        new TypeIndexIndex(Var.StateMatrixProgramNRowO, abs, sign, i2, i3),
+                                        new TypeIndexIndex(Var.StateMatProgramNRowO, abs, sign, i2, i3),
                                     _ => throw new Exception("0x005F Unsupported"),
                                 },
                             "matrix.projection.row" when i2 != -1 =>
-                                new TypeIndex(Var.StateMatrixProjectionRowO, abs, sign, i2),
+                                new TypeIndex(Var.StateMatProjectionRowO, abs, sign, i2),
                             "matrix.mvp.row"        when i2 != -1 =>
-                                new TypeIndex(Var.StateMatrixMVPRowO       , abs, sign, i2),
+                                new TypeIndex(Var.StateMatMVPRowO       , abs, sign, i2),
                             "matrix.modelview.row" when i2 != -1 =>
-                                new TypeIndexIndex(Var.StateMatrixModelViewNRowO, abs, sign, 0, i2),
+                                new TypeIndexIndex(Var.StateMatModelViewNRowO, abs, sign, 0, i2),
                             "matrix.texture.row"   when i2 != -1 =>
-                                new TypeIndexIndex(Var.StateMatrixTextureNRowO  , abs, sign, 0, i2),
+                                new TypeIndexIndex(Var.StateMatTextureNRowO  , abs, sign, 0, i2),
                             "matrix.palette.row"   when i2 != -1 =>
-                                new TypeIndexIndex(Var.StateMatrixPaletteNRowO  , abs, sign, 0, i2),
+                                new TypeIndexIndex(Var.StateMatPaletteNRowO  , abs, sign, 0, i2),
                             "matrix.program.row"   when i2 != -1 =>
-                                new TypeIndexIndex(Var.StateMatrixProgramNRowO  , abs, sign, 0, i2),
+                                new TypeIndexIndex(Var.StateMatProgramNRowO  , abs, sign, 0, i2),
+                            "matrix.projection.inverse.row" when i2 != -1 =>
+                                new TypeIndex(Var.StateMatInvProjectionRowO, abs, sign, i2),
+                            "matrix.mvp.inverse.row"        when i2 != -1 =>
+                                new TypeIndex(Var.StateMatInvMVPRowO, abs, sign, i2),
+                            "matrix.modelview.inverse.row"  when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvModelViewNRowO, abs, sign, 0, i2),
+                            "matrix.texture.inverse.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvTextureNRowO, abs, sign, 0, i2),
+                            "matrix.palette.inverse.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvPaletteNRowO, abs, sign, 0, i2),
+                            "matrix.program.inverse.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvProgramNRowO  , abs, sign, 0, i2),
+                            "matrix.projection.transpose.row" when i2 != -1 =>
+                                new TypeIndex(Var.StateMatTransProjectionRowO, abs, sign, i2),
+                            "matrix.mvp.transpose.row"        when i2 != -1 =>
+                                new TypeIndex(Var.StateMatTransMVPRowO, abs, sign, i2),
+                            "matrix.modelview.transpose.row"  when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatTransModelViewNRowO, abs, sign, 0, i2),
+                            "matrix.texture.transpose.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatTransTextureNRowO, abs, sign, 0, i2),
+                            "matrix.palette.transpose.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatTransPaletteNRowO, abs, sign, 0, i2),
+                            "matrix.program.transpose.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatTransProgramNRowO  , abs, sign, 0, i2),
+                            "matrix.projection.invtrans.row" when i2 != -1 =>
+                                new TypeIndex(Var.StateMatInvTransProjectionRowO, abs, sign, i2),
+                            "matrix.mvp.invtrans.row"        when i2 != -1 =>
+                                new TypeIndex(Var.StateMatInvTransMVPRowO, abs, sign, i2),
+                            "matrix.modelview.invtrans.row"  when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvTransModelViewNRowO, abs, sign, 0, i2),
+                            "matrix.texture.invtrans.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvTransTextureNRowO, abs, sign, 0, i2),
+                            "matrix.palette.invtrans.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvTransPaletteNRowO, abs, sign, 0, i2),
+                            "matrix.program.invtrans.row"    when i2 != -1 =>
+                                new TypeIndexIndex(Var.StateMatInvTransProgramNRowO, abs, sign, 0, i2),
                             "light" when i2 != -1 =>
                                 t = h switch
                                 {
@@ -3060,12 +3290,12 @@ namespace ARBConverter
                 else
                 {
                     i1 = str.IndexOf('[');
-                    if (i1 > 0)
+                    if (i1 >= 0)
                     {
                         i2 = str.IndexOf(']');
                         string d = i2 + 2 > str.Length ? str.Substring(i1 + 1)
                             : str.Substring(i1 + 1, i2 - i1);
-                        d = d.Replace("]", "");
+                        d = d.Substring(0, d.IndexOf(']'));
                         string e = str.Substring(0, i1);
                         string h = i2 + 2 > str.Length ? "" : str.Substring(i2 + 2);
                         if (!int.TryParse(d, out i2)) i2 = -1;
@@ -3099,30 +3329,30 @@ namespace ARBConverter
                         "point.attenuation"           => new Type(Var.StatePointAttenuation         , abs, sign),
                         "point.size"                  => new Type(Var.StatePointSize                , abs, sign),
                         "depth.range"                 => new Type(Var.StateDepthRange               , abs, sign),
-                        "matrix.projection"           => new Type(Var.StateMatrixProjection         , abs, sign),
-                        "matrix.mvp"                  => new Type(Var.StateMatrixMVP                , abs, sign),
-                        "matrix.projection.inverse"   => new Type(Var.StateMatrixInvProjection      , abs, sign),
-                        "matrix.mvp.inverse"          => new Type(Var.StateMatrixInvMVP             , abs, sign),
-                        "matrix.projection.transpose" => new Type(Var.StateMatrixTransProjection    , abs, sign),
-                        "matrix.mvp.transpose"        => new Type(Var.StateMatrixTransMVP           , abs, sign),
-                        "matrix.projection.invtrans"  => new Type(Var.StateMatrixInvTransProjection , abs, sign),
-                        "matrix.mvp.invtrans"         => new Type(Var.StateMatrixInvTransMVP        , abs, sign),
-                        "matrix.modelview"            => new TypeIndex(Var.StateMatrixModelViewN        , abs, sign, 0),
-                        "matrix.texture"              => new TypeIndex(Var.StateMatrixTextureN          , abs, sign, 0),
-                        "matrix.palette"              => new TypeIndex(Var.StateMatrixPaletteN          , abs, sign, 0),
-                        "matrix.program"              => new TypeIndex(Var.StateMatrixProgramN          , abs, sign, 0),
-                        "matrix.modelview.inverse"    => new TypeIndex(Var.StateMatrixInvModelViewN     , abs, sign, 0),
-                        "matrix.texture.inverse"      => new TypeIndex(Var.StateMatrixInvTextureN       , abs, sign, 0),
-                        "matrix.palette.inverse"      => new TypeIndex(Var.StateMatrixInvPaletteN       , abs, sign, 0),
-                        "matrix.program.inverse"      => new TypeIndex(Var.StateMatrixInvProgramN       , abs, sign, 0),
-                        "matrix.modelview.transpose"  => new TypeIndex(Var.StateMatrixTransModelViewN   , abs, sign, 0),
-                        "matrix.texture.transpose"    => new TypeIndex(Var.StateMatrixTransTextureN     , abs, sign, 0),
-                        "matrix.palette.transpose"    => new TypeIndex(Var.StateMatrixTransPaletteN     , abs, sign, 0),
-                        "matrix.program.transpose"    => new TypeIndex(Var.StateMatrixTransProgramN     , abs, sign, 0),
-                        "matrix.modelview.invtrans"   => new TypeIndex(Var.StateMatrixInvTransModelViewN, abs, sign, 0),
-                        "matrix.texture.invtrans"     => new TypeIndex(Var.StateMatrixInvTransTextureN  , abs, sign, 0),
-                        "matrix.palette.invtrans"     => new TypeIndex(Var.StateMatrixInvTransPaletteN  , abs, sign, 0),
-                        "matrix.program.invtrans"     => new TypeIndex(Var.StateMatrixInvTransProgramN  , abs, sign, 0),
+                        "matrix.projection"           => new Type(Var.StateMatProjection         , abs, sign),
+                        "matrix.mvp"                  => new Type(Var.StateMatMVP                , abs, sign),
+                        "matrix.projection.inverse"   => new Type(Var.StateMatInvProjection      , abs, sign),
+                        "matrix.mvp.inverse"          => new Type(Var.StateMatInvMVP             , abs, sign),
+                        "matrix.projection.transpose" => new Type(Var.StateMatTransProjection    , abs, sign),
+                        "matrix.mvp.transpose"        => new Type(Var.StateMatTransMVP           , abs, sign),
+                        "matrix.projection.invtrans"  => new Type(Var.StateMatInvTransProjection , abs, sign),
+                        "matrix.mvp.invtrans"         => new Type(Var.StateMatInvTransMVP        , abs, sign),
+                        "matrix.modelview"            => new TypeIndex(Var.StateMatModelViewN        , abs, sign, 0),
+                        "matrix.texture"              => new TypeIndex(Var.StateMatTextureN          , abs, sign, 0),
+                        "matrix.palette"              => new TypeIndex(Var.StateMatPaletteN          , abs, sign, 0),
+                        "matrix.program"              => new TypeIndex(Var.StateMatProgramN          , abs, sign, 0),
+                        "matrix.modelview.inverse"    => new TypeIndex(Var.StateMatInvModelViewN     , abs, sign, 0),
+                        "matrix.texture.inverse"      => new TypeIndex(Var.StateMatInvTextureN       , abs, sign, 0),
+                        "matrix.palette.inverse"      => new TypeIndex(Var.StateMatInvPaletteN       , abs, sign, 0),
+                        "matrix.program.inverse"      => new TypeIndex(Var.StateMatInvProgramN       , abs, sign, 0),
+                        "matrix.modelview.transpose"  => new TypeIndex(Var.StateMatTransModelViewN   , abs, sign, 0),
+                        "matrix.texture.transpose"    => new TypeIndex(Var.StateMatTransTextureN     , abs, sign, 0),
+                        "matrix.palette.transpose"    => new TypeIndex(Var.StateMatTransPaletteN     , abs, sign, 0),
+                        "matrix.program.transpose"    => new TypeIndex(Var.StateMatTransProgramN     , abs, sign, 0),
+                        "matrix.modelview.invtrans"   => new TypeIndex(Var.StateMatInvTransModelViewN, abs, sign, 0),
+                        "matrix.texture.invtrans"     => new TypeIndex(Var.StateMatInvTransTextureN  , abs, sign, 0),
+                        "matrix.palette.invtrans"     => new TypeIndex(Var.StateMatInvTransPaletteN  , abs, sign, 0),
+                        "matrix.program.invtrans"     => new TypeIndex(Var.StateMatInvTransProgramN  , abs, sign, 0),
                         _ => throw new Exception("0x002A Unsupported"),
                     };
                 }
@@ -3260,7 +3490,7 @@ namespace ARBConverter
                     i2 = str.IndexOf(']');
                     string d = i2 + 2 > str.Length ? str.Substring(i1 + 1)
                         : str.Substring(i1 + 1, i2 - i1);
-                    d = d.Replace("]", "");
+                    d = d.Substring(0, d.IndexOf(']'));
                     string e = str.Substring(0, i1);
                     string h = i2 + 2 > str.Length ? "" : str.Substring(i2 + 2);
 
@@ -3725,14 +3955,14 @@ namespace ARBConverter
                 Var.StatePointSize                 => "State.Point.Size",
                 Var.StatePointAttenuation          => "State.Point.Attenuation",
                 Var.StateDepthRange                => "State.Depth.Range",
-                Var.StateMatrixProjection          => "State.Matrix.Projection",
-                Var.StateMatrixMVP                 => "State.Matrix.MVP",
-                Var.StateMatrixInvProjection       => "State.MatrixInv.Projection",
-                Var.StateMatrixInvMVP              => "State.MatrixInv.MVP",
-                Var.StateMatrixTransProjection     => "State.MatrixTrans.Projection",
-                Var.StateMatrixTransMVP            => "State.MatrixTrans.MVP",
-                Var.StateMatrixInvTransProjection  => "State.MatrixInvTrans.Projection",
-                Var.StateMatrixInvTransMVP         => "State.MatrixInvTrans.MVP",
+                Var.StateMatProjection          => "State.Matrix.Projection",
+                Var.StateMatMVP                 => "State.Matrix.MVP",
+                Var.StateMatInvProjection       => "State.MatrixInv.Projection",
+                Var.StateMatInvMVP              => "State.MatrixInv.MVP",
+                Var.StateMatTransProjection     => "State.MatrixTrans.Projection",
+                Var.StateMatTransMVP            => "State.MatrixTrans.MVP",
+                Var.StateMatInvTransProjection  => "State.MatrixInvTrans.Projection",
+                Var.StateMatInvTransMVP         => "State.MatrixInvTrans.MVP",
                 _ => throw new Exception("0x0038 unk"),
             };
 
@@ -3760,50 +3990,56 @@ namespace ARBConverter
 
                 Var.ProgramBufferN          => $"Buffer{n}",
 
-                Var.StateLightNAmbient            => $"State.Light[{n}].Ambient",
-                Var.StateLightNDiffuse            => $"State.Light[{n}].Diffuse",
-                Var.StateLightNSpecular           => $"State.Light[{n}].Specular",
-                Var.StateLightNPosition           => $"State.Light[{n}].Position",
-                Var.StateLightNShininess          => $"State.Light[{n}].Shininess",
-                Var.StateLightNSpotDirection      => $"State.Light[{n}].SpotDirection",
-                Var.StateLightNHalf               => $"State.Light[{n}].Half",
-                Var.StateLightProdNAmbient        => $"State.LightProd[0][{n}].Ambient",
-                Var.StateLightProdNDiffuse        => $"State.LightProd[0][{n}].Diffuse",
-                Var.StateLightProdNSpecular       => $"State.LightProd[0][{n}].Specular",
-                Var.StateLightProdNFrontAmbient   => $"State.LightProd[0][{n}].Ambient",
-                Var.StateLightProdNFrontDiffuse   => $"State.LightProd[0][{n}].Diffuse",
-                Var.StateLightProdNFrontSpecular  => $"State.LightProd[0][{n}].Specular",
-                Var.StateLightProdNBackAmbient    => $"State.LightProd[1][{n}].Ambient",
-                Var.StateLightProdNBackDiffuse    => $"State.LightProd[1][{n}].Diffuse",
-                Var.StateLightProdNBackSpecular   => $"State.LightProd[1][{n}].Specular",
-                Var.StateTexGenNEyeS              => $"State.TexGen[{n}].EyeS",
-                Var.StateTexGenNEyeT              => $"State.TexGen[{n}].EyeT",
-                Var.StateTexGenNEyeR              => $"State.TexGen[{n}].EyeR",
-                Var.StateTexGenNEyeQ              => $"State.TexGen[{n}].EyeQ",
-                Var.StateTexGenNObjectS           => $"State.TexGen[{n}].ObjectS",
-                Var.StateTexGenNObjectT           => $"State.TexGen[{n}].ObjectT",
-                Var.StateTexGenNObjectR           => $"State.TexGen[{n}].ObjectR",
-                Var.StateTexGenNObjectQ           => $"State.TexGen[{n}].ObjectQ",
-                Var.StateTexEnvNColor             => $"State.TexEnv[{n}].Color",
-                Var.StateClipNPlane               => $"State.Clip[{n}].Plane",
-                Var.StateMatrixModelViewN         => $"State.Matrix.ModelView[{n}]",
-                Var.StateMatrixTextureN           => $"State.Matrix.Texture[{n}]",
-                Var.StateMatrixPaletteN           => $"State.Matrix.Palette[{n}]",
-                Var.StateMatrixProgramN           => $"State.Matrix.Program[{n}]",
-                Var.StateMatrixInvModelViewN      => $"State.MatrixInv.ModelView[{n}]",
-                Var.StateMatrixInvTextureN        => $"State.MatrixInv.Texture[{n}]",
-                Var.StateMatrixInvPaletteN        => $"State.MatrixInv.Palette[{n}]",
-                Var.StateMatrixInvProgramN        => $"State.MatrixInv.Program[{n}]",
-                Var.StateMatrixTransModelViewN    => $"State.MatrixTrans.ModelView[{n}]",
-                Var.StateMatrixTransTextureN      => $"State.MatrixTrans.Texture[{n}]",
-                Var.StateMatrixTransPaletteN      => $"State.MatrixTrans.Palette[{n}]",
-                Var.StateMatrixTransProgramN      => $"State.MatrixTrans.Program[{n}]",
-                Var.StateMatrixInvTransModelViewN => $"State.MatrixInvTrans.ModelView[{n}]",
-                Var.StateMatrixInvTransTextureN   => $"State.MatrixInvTrans.Texture[{n}]",
-                Var.StateMatrixInvTransPaletteN   => $"State.MatrixInvTrans.Palette[{n}]",
-                Var.StateMatrixInvTransProgramN   => $"State.MatrixInvTrans.Program[{n}]",
-                Var.StateMatrixProjectionRowO     => $"State.Matrix.Projection[{n}]",
-                Var.StateMatrixMVPRowO            => $"State.Matrix.MVP[{n}]",
+                Var.StateLightNAmbient             => $"State.Light[{n}].Ambient",
+                Var.StateLightNDiffuse             => $"State.Light[{n}].Diffuse",
+                Var.StateLightNSpecular            => $"State.Light[{n}].Specular",
+                Var.StateLightNPosition            => $"State.Light[{n}].Position",
+                Var.StateLightNShininess           => $"State.Light[{n}].Shininess",
+                Var.StateLightNSpotDirection       => $"State.Light[{n}].SpotDirection",
+                Var.StateLightNHalf                => $"State.Light[{n}].Half",
+                Var.StateLightProdNAmbient         => $"State.LightProd[0][{n}].Ambient",
+                Var.StateLightProdNDiffuse         => $"State.LightProd[0][{n}].Diffuse",
+                Var.StateLightProdNSpecular        => $"State.LightProd[0][{n}].Specular",
+                Var.StateLightProdNFrontAmbient    => $"State.LightProd[0][{n}].Ambient",
+                Var.StateLightProdNFrontDiffuse    => $"State.LightProd[0][{n}].Diffuse",
+                Var.StateLightProdNFrontSpecular   => $"State.LightProd[0][{n}].Specular",
+                Var.StateLightProdNBackAmbient     => $"State.LightProd[1][{n}].Ambient",
+                Var.StateLightProdNBackDiffuse     => $"State.LightProd[1][{n}].Diffuse",
+                Var.StateLightProdNBackSpecular    => $"State.LightProd[1][{n}].Specular",
+                Var.StateTexGenNEyeS               => $"State.TexGen[{n}].EyeS",
+                Var.StateTexGenNEyeT               => $"State.TexGen[{n}].EyeT",
+                Var.StateTexGenNEyeR               => $"State.TexGen[{n}].EyeR",
+                Var.StateTexGenNEyeQ               => $"State.TexGen[{n}].EyeQ",
+                Var.StateTexGenNObjectS            => $"State.TexGen[{n}].ObjectS",
+                Var.StateTexGenNObjectT            => $"State.TexGen[{n}].ObjectT",
+                Var.StateTexGenNObjectR            => $"State.TexGen[{n}].ObjectR",
+                Var.StateTexGenNObjectQ            => $"State.TexGen[{n}].ObjectQ",
+                Var.StateTexEnvNColor              => $"State.TexEnv[{n}].Color",
+                Var.StateClipNPlane                => $"State.Clip[{n}].Plane",
+                Var.StateMatModelViewN             => $"State.MatrixTrans.ModelView[{n}]",
+                Var.StateMatTextureN               => $"State.MatrixTrans.Texture[{n}]",
+                Var.StateMatPaletteN               => $"State.MatrixTrans.Palette[{n}]",
+                Var.StateMatProgramN               => $"State.MatrixTrans.Program[{n}]",
+                Var.StateMatInvModelViewN          => $"State.MatrixInvTrans.ModelView[{n}]",
+                Var.StateMatInvTextureN            => $"State.MatrixInvTrans.Texture[{n}]",
+                Var.StateMatInvPaletteN            => $"State.MatrixInvTrans.Palette[{n}]",
+                Var.StateMatInvProgramN            => $"State.MatrixInvTrans.Program[{n}]",
+                Var.StateMatTransModelViewN        => $"State.Matrix.ModelView[{n}]",
+                Var.StateMatTransTextureN          => $"State.Matrix.Texture[{n}]",
+                Var.StateMatTransPaletteN          => $"State.Matrix.Palette[{n}]",
+                Var.StateMatTransProgramN          => $"State.Matrix.Program[{n}]",
+                Var.StateMatInvTransModelViewN     => $"State.MatrixInv.ModelView[{n}]",
+                Var.StateMatInvTransTextureN       => $"State.MatrixInv.Texture[{n}]",
+                Var.StateMatInvTransPaletteN       => $"State.MatrixInv.Palette[{n}]",
+                Var.StateMatInvTransProgramN       => $"State.MatrixInv.Program[{n}]",
+                Var.StateMatProjectionRowO         => $"State.MatrixTrans.Projection[{n}]",
+                Var.StateMatMVPRowO                => $"State.MatrixTrans.MVP[{n}]",
+                Var.StateMatInvProjectionRowO      => $"State.MatrixInvTrans.Projection[{n}]",
+                Var.StateMatInvMVPRowO             => $"State.MatrixInvTrans.MVP[{n}]",
+                Var.StateMatTransProjectionRowO    => $"State.Matrix.Projection[{n}]",
+                Var.StateMatTransMVPRowO           => $"State.Matrix.MVP[{n}]",
+                Var.StateMatInvTransProjectionRowO => $"State.MatrixInv.Projection[{n}]",
+                Var.StateMatInvTransMVPRowO        => $"State.MatrixInv.MVP[{n}]",
                 _ => throw new Exception("0x0039 unk"),
             };
 
@@ -3812,10 +4048,22 @@ namespace ARBConverter
             {
                 Var.ProgramBufferNO => $"Buffer{n}[{o}]",
 
-                Var.StateMatrixModelViewNRowO        => $"State.Matrix.ModelView[{n}][{o}]",
-                Var.StateMatrixTextureNRowO           => $"State.Matrix.Texture[{n}][{o}]",
-                Var.StateMatrixPaletteNRowO           => $"State.Matrix.Palette[{n}][{o}]",
-                Var.StateMatrixProgramNRowO           => $"State.Matrix.Program[{n}][{o}]",
+                Var.StateMatModelViewNRowO         => $"State.MatrixTrans.ModelView[{n}][{o}]",
+                Var.StateMatTextureNRowO           => $"State.MatrixTrans.Texture[{n}][{o}]",
+                Var.StateMatPaletteNRowO           => $"State.MatrixTrans.Palette[{n}][{o}]",
+                Var.StateMatProgramNRowO           => $"State.MatrixTrans.Program[{n}][{o}]",
+                Var.StateMatInvModelViewNRowO      => $"State.MatrixInvTrans.ModelView[{n}][{o}]",
+                Var.StateMatInvTextureNRowO        => $"State.MatrixInvTrans.Texture[{n}][{o}]",
+                Var.StateMatInvPaletteNRowO        => $"State.MatrixInvTrans.Palette[{n}][{o}]",
+                Var.StateMatInvProgramNRowO        => $"State.MatrixInvTrans.Program[{n}][{o}]",
+                Var.StateMatTransModelViewNRowO    => $"State.Matrix.ModelView[{n}][{o}]",
+                Var.StateMatTransTextureNRowO      => $"State.Matrix.Texture[{n}][{o}]",
+                Var.StateMatTransPaletteNRowO      => $"State.Matrix.Palette[{n}][{o}]",
+                Var.StateMatTransProgramNRowO      => $"State.Matrix.Program[{n}][{o}]",
+                Var.StateMatInvTransModelViewNRowO => $"State.MatrixInv.ModelView[{n}][{o}]",
+                Var.StateMatInvTransTextureNRowO   => $"State.MatrixInv.Texture[{n}][{o}]",
+                Var.StateMatInvTransPaletteNRowO   => $"State.MatrixInv.Palette[{n}][{o}]",
+                Var.StateMatInvTransProgramNRowO   => $"State.MatrixInv.Program[{n}][{o}]",
                 _ => throw new Exception("0x0060 unk"),
             };
 
@@ -6713,44 +6961,68 @@ namespace ARBConverter
             StateDepthRange,                        // state.depth.range
 
             // Matrix Bindings
-            StateMatrixModelViewN,                  // state.matrix.modelview[n]
-            StateMatrixProjection,                  // state.matrix.projection
-            StateMatrixMVP,                         // state.matrix.mvp
-            StateMatrixTextureN,                    // state.matrix.texture[n]
-            StateMatrixPaletteN,                    // state.matrix.palette[n]
-            StateMatrixProgramN,                    // state.matrix.program[n]
-
-            // Matrix Row Bindings
-            StateMatrixModelViewNRowO,              // state.matrix.modelview[n].row[o]
-            StateMatrixProjectionRowO,              // state.matrix.projection.row[o]
-            StateMatrixMVPRowO,                     // state.matrix.mvp.row[o]
-            StateMatrixTextureNRowO,                // state.matrix.texture[n].row[o]
-            StateMatrixPaletteNRowO,                // state.matrix.palette[n].row[o]
-            StateMatrixProgramNRowO,                // state.matrix.program[n].row[o]
+            StateMatModelViewN,                     // state.matrix.modelview[n]
+            StateMatProjection,                     // state.matrix.projection
+            StateMatMVP,                            // state.matrix.mvp
+            StateMatTextureN,                       // state.matrix.texture[n]
+            StateMatPaletteN,                       // state.matrix.palette[n]
+            StateMatProgramN,                       // state.matrix.program[n]
 
             // Matrix Bindings Inverse
-            StateMatrixInvModelViewN,               // state.matrix.modelview[n].inverse
-            StateMatrixInvProjection,               // state.matrix.projection.inverse
-            StateMatrixInvMVP,                      // state.matrix.mvp.inverse
-            StateMatrixInvTextureN,                 // state.matrix.texture[n].inverse
-            StateMatrixInvPaletteN,                 // state.matrix.palette[n].inverse
-            StateMatrixInvProgramN,                 // state.matrix.program[n].inverse
+            StateMatInvModelViewN,                  // state.matrix.modelview[n].inverse
+            StateMatInvProjection,                  // state.matrix.projection.inverse
+            StateMatInvMVP,                         // state.matrix.mvp.inverse
+            StateMatInvTextureN,                    // state.matrix.texture[n].inverse
+            StateMatInvPaletteN,                    // state.matrix.palette[n].inverse
+            StateMatInvProgramN,                    // state.matrix.program[n].inverse
 
             // Matrix Bindings Transpose
-            StateMatrixTransModelViewN,             // state.matrix.modelview[n].transpose
-            StateMatrixTransProjection,             // state.matrix.projection.transpose
-            StateMatrixTransMVP,                    // state.matrix.mvp.transpose
-            StateMatrixTransTextureN,               // state.matrix.texture[n].transpose
-            StateMatrixTransPaletteN,               // state.matrix.palette[n].transpose
-            StateMatrixTransProgramN,               // state.matrix.program[n].transpose
+            StateMatTransModelViewN,                // state.matrix.modelview[n].transpose
+            StateMatTransProjection,                // state.matrix.projection.transpose
+            StateMatTransMVP,                       // state.matrix.mvp.transpose
+            StateMatTransTextureN,                  // state.matrix.texture[n].transpose
+            StateMatTransPaletteN,                  // state.matrix.palette[n].transpose
+            StateMatTransProgramN,                  // state.matrix.program[n].transpose
 
             // Matrix Bindings Inverse Transpose
-            StateMatrixInvTransModelViewN,          // state.matrix.modelview[n].invtrans
-            StateMatrixInvTransProjection,          // state.matrix.projection.invtrans
-            StateMatrixInvTransMVP,                 // state.matrix.mvp.invtrans
-            StateMatrixInvTransTextureN,            // state.matrix.texture[n].invtrans
-            StateMatrixInvTransPaletteN,            // state.matrix.palette[n].invtrans
-            StateMatrixInvTransProgramN,            // state.matrix.program[n].invtrans
+            StateMatInvTransModelViewN,             // state.matrix.modelview[n].invtrans
+            StateMatInvTransProjection,             // state.matrix.projection.invtrans
+            StateMatInvTransMVP,                    // state.matrix.mvp.invtrans
+            StateMatInvTransTextureN,               // state.matrix.texture[n].invtrans
+            StateMatInvTransPaletteN,               // state.matrix.palette[n].invtrans
+            StateMatInvTransProgramN,               // state.matrix.program[n].invtrans
+
+            // Matrix Bindings Row Access
+            StateMatModelViewNRowO,                 // state.matrix.modelview[n].row[o]
+            StateMatProjectionRowO,                 // state.matrix.projection.row[o]
+            StateMatMVPRowO,                        // state.matrix.mvp.row[o]
+            StateMatTextureNRowO,                   // state.matrix.texture[n].row[o]
+            StateMatPaletteNRowO,                   // state.matrix.palette[n].row[o]
+            StateMatProgramNRowO,                   // state.matrix.program[n].row[o]
+
+            // Matrix Bindings Inverse Row Access
+            StateMatInvModelViewNRowO,              // state.matrix.modelview[n].inverse.row[o]
+            StateMatInvProjectionRowO,              // state.matrix.projection.inverse.row[o]
+            StateMatInvMVPRowO,                     // state.matrix.mvp.inverse.row[o]
+            StateMatInvTextureNRowO,                // state.matrix.texture[n].inverse.row[o]
+            StateMatInvPaletteNRowO,                // state.matrix.palette[n].inverse.row[o]
+            StateMatInvProgramNRowO,                // state.matrix.program[n].inverse.row[o]
+
+            // Matrix Bindings Transpose Row Access
+            StateMatTransModelViewNRowO,            // state.matrix.modelview[n].transpose.row[o]
+            StateMatTransProjectionRowO,            // state.matrix.projection.transpose.row[o]
+            StateMatTransMVPRowO,                   // state.matrix.mvp.transpose.row[o]
+            StateMatTransTextureNRowO,              // state.matrix.texture[n].transpose.row[o]
+            StateMatTransPaletteNRowO,              // state.matrix.palette[n].transpose.row[o]
+            StateMatTransProgramNRowO,              // state.matrix.program[n].transpose.row[o]
+
+            // Matrix Bindings Inverse Transpose Row Access
+            StateMatInvTransModelViewNRowO,         // state.matrix.modelview[n].invtrans.row[o]
+            StateMatInvTransProjectionRowO,         // state.matrix.projection.invtrans.row[o]
+            StateMatInvTransMVPRowO,                // state.matrix.mvp.invtrans.row[o]
+            StateMatInvTransTextureNRowO,           // state.matrix.texture[n].invtrans.row[o]
+            StateMatInvTransPaletteNRowO,           // state.matrix.palette[n].invtrans.row[o]
+            StateMatInvTransProgramNRowO,           // state.matrix.program[n].invtrans.row[o]
 
             // Value
             Value,
