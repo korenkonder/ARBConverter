@@ -3739,153 +3739,221 @@ namespace ARBConverter
             if (mask == null) return TypeToString(data, m);
 
             int l = mask.Length;
-            l = l == 0 ? 4 : l;
-            return data switch
+            if (l == 0)
             {
-                Type      t => VarToString(t.Var),
-                TypeIndex t => VarNToString(t.Var, t.ID),
-                TypeIndexIndex t => VarNOToString(t.Var, t.ID0, t.ID1),
-                TypeRange t => throw new Exception("0x0036 unk"), //VarNOToString(t.Var, t.IDStart, t.IDEnd),
-                TypeName  t => t.Name,
-                TypeVec<float> t when l == 1 =>
-                    m switch
+                mask = "xyzw";
+                l = 4;
+            }
+
+            switch (data)
+            {
+                case Type      t: return VarToString(t.Var);
+                case TypeIndex ti: return VarNToString(ti.Var, ti.ID);
+                case TypeIndexIndex tii: return VarNOToString(tii.Var, tii.ID0, tii.ID1);
+                case TypeRange tr: throw new Exception("0x0036 unk"); //VarNOToString(tr.Var, tr.IDStart, tr.IDEnd);
+                case TypeName tn: return tn.Name;
+                case TypeVec<float> tvf1 when l == 1:
                     {
-                        Modifier. INT =>       $"{( int)t.X }",
-                        Modifier.UINT =>       $"{(uint)t.X }",
-                                    _ =>       $"{  ToS(t.X)}",
-                    },
-                TypeVec<float> t when l == 2 => t.X == t.Y
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec2({( int)t.X })",
-                        Modifier.UINT => $"uvec2({(uint)t.X })",
-                                    _ =>  $"vec2({  ToS(t.X)})",
+                        float x = tvf1.GetComp(mask[0]);
+                        return m switch
+                        {
+                            Modifier. INT =>       $"{( int)x }",
+                            Modifier.UINT =>       $"{(uint)x }",
+                                        _ =>       $"{  ToS(x)}",
+                        };
                     }
-                    : m switch
+                case TypeVec<float> tvf2 when l == 2:
                     {
-                        Modifier. INT => $"ivec2({( int)t.X }, {( int)t.Y })",
-                        Modifier.UINT => $"uvec2({(uint)t.X }, {(uint)t.Y })",
-                                    _ =>  $"vec2({  ToS(t.X)}, {  ToS(t.Y)})",
-                    },
-                TypeVec<float> t when l == 3 => t.X == t.Y && t.Y == t.Z
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec3({( int)t.X })",
-                        Modifier.UINT => $"uvec3({(uint)t.X })",
-                                    _ =>  $"vec3({  ToS(t.X)})",
+                        float x = tvf2.GetComp(mask[0]);
+                        float y = tvf2.GetComp(mask[1]);
+                        return x == y
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec2({( int)x })",
+                            Modifier.UINT => $"uvec2({(uint)x })",
+                                        _ =>  $"vec2({  ToS(x)})",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec2({( int)x }, {( int)y })",
+                            Modifier.UINT => $"uvec2({(uint)x }, {(uint)y })",
+                                        _ =>  $"vec2({  ToS(x)}, {  ToS(y)})",
+                        };
                     }
-                    : m switch
+                case TypeVec<float> tvf3 when l == 3:
                     {
-                        Modifier. INT => $"ivec3({( int)t.X }, {( int)t.Y }, {( int)t.Z })",
-                        Modifier.UINT => $"uvec3({(uint)t.X }, {(uint)t.Y }, {(uint)t.Z })",
-                                    _ =>  $"vec3({  ToS(t.X)}, {  ToS(t.Y)}, {  ToS(t.Z)})",
-                    },
-                TypeVec<float> t when l == 4 => t.X == t.Y && t.Y == t.Z && t.Z == t.W
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec4({( int)t.X })",
-                        Modifier.UINT => $"uvec4({(uint)t.X })",
-                                    _ =>  $"vec4({  ToS(t.X)})",
+                        float x = tvf3.GetComp(mask[0]);
+                        float y = tvf3.GetComp(mask[1]);
+                        float z = tvf3.GetComp(mask[2]);
+                        return x == y && y == z
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec3({( int)x })",
+                            Modifier.UINT => $"uvec3({(uint)x })",
+                                        _ =>  $"vec3({  ToS(x)})",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec3({( int)x }, {( int)y }, {( int)z })",
+                            Modifier.UINT => $"uvec3({(uint)x }, {(uint)y }, {(uint)z })",
+                                        _ =>  $"vec3({  ToS(x)}, {  ToS(y)}, {  ToS(z)})",
+                        };
                     }
-                    : m switch
+                case TypeVec<float> tvf4 when l == 4:
                     {
-                        Modifier. INT => $"ivec4({( int)t.X }, {( int)t.Y }, {( int)t.Z }, {( int)t.W })",
-                        Modifier.UINT => $"uvec4({(uint)t.X }, {(uint)t.Y }, {(uint)t.Z }, {(uint)t.W })",
-                                    _ =>  $"vec4({  ToS(t.X)}, {  ToS(t.Y)}, {  ToS(t.Z)}, {  ToS(t.W)})",
-                    },
-                TypeVec<  int> t when l == 1 =>
-                    m switch
-                    {
-                        Modifier. INT =>       $"{      t.X }",
-                        Modifier.UINT =>       $"{(uint)t.X }",
-                                    _ =>       $"{      t.X }",
-                    },
-                TypeVec<  int> t when l == 2 => t.X == t.Y
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec2({      t.X })",
-                        Modifier.UINT => $"uvec2({(uint)t.X })",
-                                    _ =>  $"vec2({      t.X })",
+                        float x = tvf4.GetComp(mask[0]);
+                        float y = tvf4.GetComp(mask[1]);
+                        float z = tvf4.GetComp(mask[2]);
+                        float w = tvf4.GetComp(mask[3]);
+                        return x == y && y == z && z == w
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec4({( int)x })",
+                            Modifier.UINT => $"uvec4({(uint)x })",
+                                        _ =>  $"vec4({  ToS(x)})",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec4({( int)x }, {( int)y }, {( int)z }, {( int)w })",
+                            Modifier.UINT => $"uvec4({(uint)x }, {(uint)y }, {(uint)z }, {(uint)w })",
+                                        _ =>  $"vec4({  ToS(x)}, {  ToS(y)}, {  ToS(z)}, {  ToS(w)})",
+                        };
                     }
-                    : m switch
+                case TypeVec<  int> tvi1 when l == 1:
                     {
-                        Modifier. INT => $"ivec2({      t.X }, {      t.Y })",
-                        Modifier.UINT => $"uvec2({(uint)t.X }, {(uint)t.Y })",
-                                    _ =>  $"vec2({      t.X }, {      t.Y })",
-                    },
-                TypeVec<  int> t when l == 3 => t.X == t.Y && t.Y == t.Z
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec3({      t.X })",
-                        Modifier.UINT => $"uvec3({(uint)t.X })",
-                                    _ =>  $"vec3({      t.X })",
+                        int x = tvi1.GetComp(mask[0]);
+                        return m switch
+                        {
+                            Modifier. INT =>       $"{      x }",
+                            Modifier.UINT =>       $"{(uint)x }",
+                                        _ =>       $"{      x }",
+                        };
                     }
-                    : m switch
+                case TypeVec<  int> tvi2 when l == 2:
                     {
-                        Modifier. INT => $"ivec3({      t.X }, {      t.Y }, {      t.Z })",
-                        Modifier.UINT => $"uvec3({(uint)t.X }, {(uint)t.Y }, {(uint)t.Z })",
-                                    _ =>  $"vec3({      t.X }, {      t.Y }, {      t.Z })",
-                    },
-                TypeVec<  int> t when l == 4 => t.X == t.Y && t.Y == t.Z && t.Z == t.W
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec4({      t.X })",
-                        Modifier.UINT => $"uvec4({(uint)t.X })",
-                                    _ =>  $"vec4({      t.X })",
+                        int x = tvi2.GetComp(mask[0]);
+                        int y = tvi2.GetComp(mask[1]);
+                        return x == y
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec2({      x })",
+                            Modifier.UINT => $"uvec2({(uint)x })",
+                                        _ =>  $"vec2({      x })",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec2({      x }, {      y })",
+                            Modifier.UINT => $"uvec2({(uint)x }, {(uint)y })",
+                                        _ =>  $"vec2({      x }, {      y })",
+                        };
                     }
-                    : m switch
+                case TypeVec<  int> tvi3 when l == 3:
                     {
-                        Modifier. INT => $"ivec4({      t.X }, {      t.Y }, {      t.Z }, {      t.W })",
-                        Modifier.UINT => $"uvec4({(uint)t.X }, {(uint)t.Y }, {(uint)t.Z }, {(uint)t.W })",
-                                    _ =>  $"vec4({      t.X }, {      t.Y }, {      t.Z }, {      t.W })",
-                    },
-                TypeVec< uint> t when l == 1 =>
-                    m switch
-                    {
-                        Modifier. INT =>       $"{( int)t.X }",
-                        Modifier.UINT =>       $"{      t.X }",
-                                    _ =>       $"{      t.X }",
-                    },
-                TypeVec< uint> t when l == 2 => t.X == t.Y
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec2({( int)t.X })",
-                        Modifier.UINT => $"uvec2({      t.X })",
-                                    _ =>  $"vec2({      t.X })",
+                        int x = tvi3.GetComp(mask[0]);
+                        int y = tvi3.GetComp(mask[1]);
+                        int z = tvi3.GetComp(mask[2]);
+                        return x == y && y == z
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec3({      x })",
+                            Modifier.UINT => $"uvec3({(uint)x })",
+                                        _ =>  $"vec3({      x })",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec3({      x }, {      y }, {      z })",
+                            Modifier.UINT => $"uvec3({(uint)x }, {(uint)y }, {(uint)z })",
+                                        _ =>  $"vec3({      x }, {      y }, {      z })",
+                        };
                     }
-                    : m switch
+                case TypeVec<  int> tvi4 when l == 4:
                     {
-                        Modifier. INT => $"ivec2({( int)t.X }, {( int)t.Y })",
-                        Modifier.UINT => $"uvec2({      t.X }, {      t.Y })",
-                                    _ =>  $"vec2({      t.X }, {      t.Y })",
-                    },
-                TypeVec< uint> t when l == 3 => t.X == t.Y && t.Y == t.Z
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec3({( int)t.X })",
-                        Modifier.UINT => $"uvec3({      t.X })",
-                                    _ =>  $"vec3({      t.X })",
+                        int x = tvi4.GetComp(mask[0]);
+                        int y = tvi4.GetComp(mask[1]);
+                        int z = tvi4.GetComp(mask[2]);
+                        int w = tvi4.GetComp(mask[3]);
+                        return x == y && y == z && z == w
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec4({      x })",
+                            Modifier.UINT => $"uvec4({(uint)x })",
+                                        _ =>  $"vec4({      x })",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec4({      x }, {      y }, {      z }, {      w })",
+                            Modifier.UINT => $"uvec4({(uint)x }, {(uint)y }, {(uint)z }, {(uint)w })",
+                                        _ =>  $"vec4({      x }, {      y }, {      z }, {      w })",
+                        };
                     }
-                    : m switch
+                case TypeVec< uint> tvu1 when l == 1:
                     {
-                        Modifier. INT => $"ivec3({( int)t.X }, {( int)t.Y }, {( int)t.Z })",
-                        Modifier.UINT => $"uvec3({      t.X }, {      t.Y }, {      t.Z })",
-                                    _ =>  $"vec3({      t.X }, {      t.Y }, {      t.Z })",
-                    },
-                TypeVec< uint> t when l == 4 => t.X == t.Y && t.Y == t.Z && t.Z == t.W
-                    ? m switch
-                    {
-                        Modifier. INT => $"ivec4({( int)t.X })",
-                        Modifier.UINT => $"uvec4({      t.X })",
-                                    _ =>  $"vec4({      t.X })",
+                        uint x = tvu1.GetComp(mask[0]);
+                        return m switch
+                        {
+                            Modifier. INT =>       $"{( int)x }",
+                            Modifier.UINT =>       $"{      x }",
+                                        _ =>       $"{      x }",
+                        };
                     }
-                    : m switch
+                case TypeVec< uint> tvu2 when l == 2:
                     {
-                        Modifier. INT => $"ivec4({( int)t.X }, {( int)t.Y }, {( int)t.Z }, {( int)t.W })",
-                        Modifier.UINT => $"uvec4({      t.X }, {      t.Y }, {      t.Z }, {      t.W })",
-                                    _ =>  $"vec4({      t.X }, {      t.Y }, {      t.Z }, {      t.W })",
-                    },
-                _ => throw new Exception("0x007B Invalid BUFFER4"),
+                        uint x = tvu2.GetComp(mask[0]);
+                        uint y = tvu2.GetComp(mask[1]);
+                        return x == y
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec2({( int)x })",
+                            Modifier.UINT => $"uvec2({      x })",
+                                        _ =>  $"vec2({      x })",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec2({( int)x }, {( int)y })",
+                            Modifier.UINT => $"uvec2({      x }, {      y })",
+                                        _ =>  $"vec2({      x }, {      y })",
+                        };
+                    }
+                case TypeVec< uint> tvu3 when l == 3:
+                    {
+                        uint x = tvu3.GetComp(mask[0]);
+                        uint y = tvu3.GetComp(mask[1]);
+                        uint z = tvu3.GetComp(mask[2]);
+                        return x == y && y == z
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec3({( int)x })",
+                            Modifier.UINT => $"uvec3({      x })",
+                                        _ =>  $"vec3({      x })",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec3({( int)x }, {( int)y }, {( int)z })",
+                            Modifier.UINT => $"uvec3({      x }, {      y }, {      z })",
+                                        _ =>  $"vec3({      x }, {      y }, {      z })",
+                        };
+                    }
+                case TypeVec< uint> tvu4 when l == 4:
+                    {
+                        uint x = tvu4.GetComp(mask[0]);
+                        uint y = tvu4.GetComp(mask[1]);
+                        uint z = tvu4.GetComp(mask[2]);
+                        uint w = tvu4.GetComp(mask[3]);
+                        return x == y && y == z && z == w
+                        ? m switch
+                        {
+                            Modifier. INT => $"ivec4({( int)x })",
+                            Modifier.UINT => $"uvec4({      x })",
+                                        _ =>  $"vec4({      x })",
+                        }
+                        : m switch
+                        {
+                            Modifier. INT => $"ivec4({( int)x }, {( int)y }, {( int)z }, {( int)w })",
+                            Modifier.UINT => $"uvec4({      x }, {      y }, {      z }, {      w })",
+                                        _ =>  $"vec4({      x }, {      y }, {      z }, {      w })",
+                        };
+                    }
+                default: throw new Exception("0x007B Invalid Type");
             };
         }
 
@@ -6729,6 +6797,24 @@ namespace ARBConverter
 
             public TypeVec(Var var, T x, T y, T z, T w, bool abs, Sign sign)
             { this.var = var; this.x = x; this.y = y; this.z = z; this.w = w; this.abs = abs; this.sign = sign; }
+
+            public T GetComp(char comp) =>
+                comp switch
+                {
+                    'x' => X,
+                    'y' => Y,
+                    'z' => Z,
+                    'w' => W,
+                    'r' => X,
+                    'g' => Y,
+                    'b' => Z,
+                    'a' => W,
+                    's' => X,
+                    't' => Y,
+                    'u' => Z,
+                    'v' => W,
+                    _  => default
+                };
 
             public override string ToString() =>
                 $"(X: {x}; Y: {y}; Z: {z}; W: {w})";
